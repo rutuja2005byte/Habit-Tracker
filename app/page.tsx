@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import {
-  BarChart3,
   CalendarDays,
   Check,
   CheckCircle2,
@@ -21,12 +20,6 @@ import {
   Zap,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  Cell,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-} from "recharts";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -110,11 +103,6 @@ export default function Home() {
   const activeGoals = goalsByTimeframe[active];
   const activeStats = stats(activeGoals);
   const xp = overall.completed * 120 + activeStats.percent * 4;
-
-  const completionData = [
-    { name: "Completed", value: activeStats.completed, color: "#22c55e" },
-    { name: "Pending", value: activeStats.pending, color: dark ? "#334155" : "#e2e8f0" },
-  ];
 
   function upsertGoal(values: GoalFormValues) {
     if (!modal) return;
@@ -218,7 +206,7 @@ export default function Home() {
             </div>
           </section>
 
-          <section className="grid gap-6 xl:grid-cols-[1fr_360px]">
+          <section className="grid gap-6">
             <GoalPanel
               timeframe={active}
               goals={activeGoals}
@@ -227,36 +215,6 @@ export default function Home() {
               onDelete={(id) => deleteGoal(active, id)}
               onToggle={(id) => toggleGoal(active, id)}
             />
-
-            <aside className="grid gap-6">
-              <div className="dashboard-card">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="section-kicker">Completion</p>
-                    <h2 className="section-title">{timeframeCopy[active].title}</h2>
-                  </div>
-                  <BarChart3 className="h-5 w-5 text-[var(--accent)]" />
-                </div>
-                <div className="mt-4 grid grid-cols-[140px_1fr] items-center gap-4">
-                  <div className="h-36">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie data={completionData} innerRadius={42} outerRadius={62} paddingAngle={3} dataKey="value">
-                          {completionData.map((entry) => (
-                            <Cell key={entry.name} fill={entry.color} />
-                          ))}
-                        </Pie>
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                  <div className="space-y-3">
-                    <StatLine label="Completed" value={activeStats.completed} />
-                    <StatLine label="Pending" value={activeStats.pending} />
-                    <StatLine label="Total goals" value={activeStats.total} />
-                  </div>
-                </div>
-              </div>
-            </aside>
           </section>
         </div>
       </div>
@@ -285,6 +243,35 @@ function MetricCard({ icon: Icon, label, value, detail }: { icon: typeof Target;
       <p className="mt-4 text-sm text-[var(--muted)]">{label}</p>
       <p className="mt-1 text-2xl font-semibold tracking-tight">{value}</p>
       <p className="mt-1 truncate text-xs text-[var(--muted)]">{detail}</p>
+    </div>
+  );
+}
+
+function CompactProgress({ percent }: { percent: number }) {
+  const circumference = 2 * Math.PI * 18;
+  const offset = circumference - (percent / 100) * circumference;
+
+  return (
+    <div className="flex items-center gap-3">
+      <svg className="h-14 w-14 -rotate-90" viewBox="0 0 48 48" aria-hidden="true">
+        <circle cx="24" cy="24" r="18" stroke="var(--track)" strokeWidth="6" fill="none" />
+        <motion.circle
+          cx="24"
+          cy="24"
+          r="18"
+          stroke="var(--accent)"
+          strokeWidth="6"
+          strokeLinecap="round"
+          fill="none"
+          strokeDasharray={circumference}
+          initial={{ strokeDashoffset: circumference }}
+          animate={{ strokeDashoffset: offset }}
+        />
+      </svg>
+      <div>
+        <p className="text-xl font-semibold">{percent}%</p>
+        <p className="text-sm text-[var(--muted)]">Progress</p>
+      </div>
     </div>
   );
 }
@@ -321,13 +308,11 @@ function GoalPanel({
       </div>
 
       <div className="mt-6">
-        <div className="mb-4 rounded-3xl bg-[var(--subtle)] p-4">
-          <div className="flex items-center justify-between gap-4 text-sm">
-            <span className="font-medium">{current.percent}% complete</span>
-            <span className="text-[var(--muted)]">{current.completed} of {current.total}</span>
-          </div>
-          <div className="mt-3 h-2 overflow-hidden rounded-full bg-[var(--track)]">
-            <motion.div className="h-full rounded-full bg-[var(--accent)]" initial={{ width: 0 }} animate={{ width: `${current.percent}%` }} />
+        <div className="mb-4 flex items-center justify-between gap-4 rounded-3xl bg-[var(--subtle)] p-4">
+          <CompactProgress percent={current.percent} />
+          <div className="text-right">
+            <p className="text-2xl font-semibold">{current.completed}/{current.total}</p>
+            <p className="text-sm text-[var(--muted)]">Completed</p>
           </div>
         </div>
         <div className="space-y-3">
@@ -370,15 +355,6 @@ function GoalPanel({
           )}
         </div>
       </div>
-    </div>
-  );
-}
-
-function StatLine({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="flex items-center justify-between rounded-2xl bg-[var(--subtle)] px-4 py-3 text-sm">
-      <span className="text-[var(--muted)]">{label}</span>
-      <span className="font-semibold">{value}</span>
     </div>
   );
 }

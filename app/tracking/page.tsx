@@ -210,7 +210,7 @@ export default function TrackingPage() {
           </div>
         </section>
 
-        <section className="grid gap-6 lg:grid-cols-2">
+        <section className="grid items-stretch gap-6 lg:grid-cols-2">
           <LeetCodeAnalysis stats={leetcode} loading={loading} />
           <GitHubAnalysis stats={github} loading={loading} />
         </section>
@@ -294,8 +294,11 @@ function ConnectionCard({
 }
 
 function LeetCodeAnalysis({ stats, loading }: { stats: LeetCodeStats | null; loading: boolean }) {
+  const solvedGoal = 100;
+  const progress = stats?.ok ? Math.min(Math.round((stats.solved / solvedGoal) * 100), 100) : 0;
+
   return (
-    <div className="dashboard-card">
+    <div className="dashboard-card flex h-full flex-col">
       <div className="flex items-center justify-between">
         <div>
           <p className="section-kicker">Analysis</p>
@@ -305,8 +308,8 @@ function LeetCodeAnalysis({ stats, loading }: { stats: LeetCodeStats | null; loa
       </div>
       {loading ? <LoadingPanel /> : null}
       {!loading && stats?.ok ? (
-        <div className="mt-5 grid gap-4">
-          <ProgressRow label="Solved coverage" value={stats.completionRate} />
+        <div className="mt-5 grid flex-1 content-start gap-4">
+          <ProgressRow label="LeetCode progress" value={progress} detail={`${stats.solved}/${solvedGoal} solved goal`} />
           <div className="grid gap-3 sm:grid-cols-3">
             <MiniStat label="Easy" value={stats.easy} />
             <MiniStat label="Medium" value={stats.medium} />
@@ -314,7 +317,7 @@ function LeetCodeAnalysis({ stats, loading }: { stats: LeetCodeStats | null; loa
           </div>
           <ListBlock
             title="Recent accepted"
-            items={stats.recentAccepted.map((item) => ({
+            items={stats.recentAccepted.slice(0, 4).map((item) => ({
               label: item.title,
               detail: formatDate(item.date),
               href: item.url,
@@ -328,8 +331,11 @@ function LeetCodeAnalysis({ stats, loading }: { stats: LeetCodeStats | null; loa
 }
 
 function GitHubAnalysis({ stats, loading }: { stats: GitHubStats | null; loading: boolean }) {
+  const repoGoal = 15;
+  const progress = stats?.ok ? Math.min(Math.round((stats.publicRepos / repoGoal) * 100), 100) : 0;
+
   return (
-    <div className="dashboard-card">
+    <div className="dashboard-card flex h-full flex-col">
       <div className="flex items-center justify-between">
         <div>
           <p className="section-kicker">Analysis</p>
@@ -339,21 +345,19 @@ function GitHubAnalysis({ stats, loading }: { stats: GitHubStats | null; loading
       </div>
       {loading ? <LoadingPanel /> : null}
       {!loading && stats?.ok ? (
-        <div className="mt-5 grid gap-4">
-          <ProgressRow label="Active repository share" value={stats.publicRepos ? Math.round((stats.activeRepos / stats.publicRepos) * 100) : 0} />
+        <div className="mt-5 grid flex-1 content-start gap-4">
+          <ProgressRow label="GitHub progress" value={progress} detail={`${stats.publicRepos}/${repoGoal} repository goal`} />
+          <div className="grid gap-3 sm:grid-cols-3">
+            <MiniStat label="Repos" value={stats.publicRepos} />
+            <MiniStat label="Active" value={stats.activeRepos} />
+            <MiniStat label="Commits" value={stats.commits} />
+          </div>
           <ListBlock
             title="Recent repositories"
-            items={stats.recentRepos.map((repo) => ({
+            items={stats.recentRepos.slice(0, 4).map((repo) => ({
               label: repo.name,
               detail: `${repo.language} · ${repo.stars} stars · ${formatDate(repo.pushedAt)}`,
               href: repo.url,
-            }))}
-          />
-          <ListBlock
-            title="Recent activity"
-            items={stats.recentActivity.map((activity) => ({
-              label: activity.type,
-              detail: formatDate(activity.date),
             }))}
           />
         </div>
@@ -380,11 +384,14 @@ function EmptyAnalysis({ text }: { text: string }) {
   );
 }
 
-function ProgressRow({ label, value }: { label: string; value: number }) {
+function ProgressRow({ label, value, detail }: { label: string; value: number; detail: string }) {
   return (
     <div>
       <div className="flex items-center justify-between text-sm">
-        <span className="text-[var(--muted)]">{label}</span>
+        <span>
+          <span className="block font-medium">{label}</span>
+          <span className="mt-1 block text-xs text-[var(--muted)]">{detail}</span>
+        </span>
         <span className="font-semibold">{value}%</span>
       </div>
       <div className="mt-2 h-2 overflow-hidden rounded-full bg-[var(--track)]">
