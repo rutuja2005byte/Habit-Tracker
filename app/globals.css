@@ -1,0 +1,260 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f7f8fb;
+  --foreground: #111827;
+  --card: #ffffff;
+  --muted: #64748b;
+  --border: #e2e8f0;
+  --subtle: #f1f5f9;
+  --track: #e5e7eb;
+  --accent: #2563eb;
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --error: #ef4444;
+}
+
+.dark {
+  --background: #0f172a;
+  --foreground: #f8fafc;
+  --card: #111827;
+  --muted: #94a3b8;
+  --border: #1f2937;
+  --subtle: #162033;
+  --track: #263247;
+  --accent: #60a5fa;
+  --success: #34d399;
+  --warning: #fbbf24;
+  --error: #f87171;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--background);
+}
+
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+.dashboard-card {
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  background: var(--card);
+  padding: 20px;
+  box-shadow: 0 16px 40px rgb(15 23 42 / 0.06);
+  transition:
+    border-color 180ms ease,
+    background 180ms ease,
+    transform 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.dashboard-card:hover {
+  border-color: color-mix(in srgb, var(--accent) 24%, var(--border));
+}
+
+.section-kicker {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.section-title {
+  color: var(--foreground);
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: 1.2;
+}
+
+.icon-button {
+  display: inline-grid;
+  min-width: 44px;
+  height: 44px;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--card);
+  color: var(--foreground);
+  transition:
+    background 180ms ease,
+    border-color 180ms ease,
+    transform 180ms ease;
+}
+
+.icon-button:hover {
+  border-color: color-mix(in srgb, var(--accent) 32%, var(--border));
+  background: var(--subtle);
+  transform: translateY(-1px);
+}
+
+.icon-button.small {
+  min-width: 36px;
+  height: 36px;
+  border-radius: 12px;
+}
+
+.icon-button.danger:hover {
+  color: var(--error);
+}
+
+.primary-button,
+.secondary-button {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 14px;
+  padding: 0 16px;
+  font-size: 14px;
+  font-weight: 650;
+  transition:
+    transform 180ms ease,
+    background 180ms ease,
+    border-color 180ms ease;
+}
+
+.primary-button {
+  border: 1px solid var(--foreground);
+  background: var(--foreground);
+  color: var(--background);
+}
+
+.secondary-button {
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--foreground);
+}
+
+.primary-button:hover,
+.secondary-button:hover {
+  transform: translateY(-1px);
+}
+
+.secondary-button:hover {
+  background: var(--subtle);
+}
+
+.goal-card {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  min-height: 98px;
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  background: var(--card);
+  padding: 16px;
+  box-shadow: 0 10px 26px rgb(15 23 42 / 0.04);
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease,
+    border-color 180ms ease,
+    background 180ms ease;
+}
+
+.goal-card:hover {
+  border-color: color-mix(in srgb, var(--accent) 38%, var(--border));
+  transform: translateY(-2px);
+}
+
+.goal-card-complete {
+  opacity: 0.72;
+  background: color-mix(in srgb, var(--success) 7%, var(--card));
+}
+
+.badge,
+.priority {
+  display: inline-flex;
+  min-height: 24px;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1;
+}
+
+.badge {
+  background: var(--subtle);
+  color: var(--muted);
+}
+
+.priority-low {
+  background: color-mix(in srgb, var(--success) 15%, transparent);
+  color: var(--success);
+}
+
+.priority-medium {
+  background: color-mix(in srgb, var(--warning) 16%, transparent);
+  color: var(--warning);
+}
+
+.priority-high {
+  background: color-mix(in srgb, var(--error) 13%, transparent);
+  color: var(--error);
+}
+
+.input {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--subtle);
+  color: var(--foreground);
+  outline: none;
+  padding: 12px 14px;
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    background 180ms ease;
+}
+
+.input:focus {
+  border-color: var(--accent);
+  background: var(--card);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 15%, transparent);
+}
+
+@media (max-width: 640px) {
+  .dashboard-card {
+    border-radius: 20px;
+    padding: 16px;
+  }
+
+  .goal-card {
+    display: grid;
+    grid-template-columns: auto 1fr;
+  }
+
+  .goal-card > div:last-child {
+    grid-column: 2;
+    justify-content: flex-start;
+  }
+}

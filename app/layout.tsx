@@ -13,8 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Starter Project",
-  description: "A clean starting point for building your site.",
+  title: "Personal Growth Dashboard",
+  description:
+    "A modern dashboard for tracking daily, weekly, monthly, and yearly goals.",
   icons: {
     icon: "/favicon.svg",
     shortcut: "/favicon.svg",
