@@ -6,6 +6,7 @@ type GitHubRepo = {
   stargazers_count: number;
   language: string | null;
   pushed_at: string;
+  owner: { login: string };
 };
 
 type GitHubEvent = {
@@ -109,6 +110,7 @@ async function fetchGitHub(username: string) {
       const pushedAt = new Date(repo.pushed_at).getTime();
       return Number.isFinite(pushedAt) && Date.now() - pushedAt <= 1000 * 60 * 60 * 24 * 90;
     }).length;
+    const totalCommits = await fetchTotalCommits(username, repos, headers);
 
     return {
       ok: true,
@@ -117,7 +119,8 @@ async function fetchGitHub(username: string) {
       avatarUrl: user.avatar_url as string,
       publicRepos: user.public_repos as number,
       followers: user.followers as number,
-      commits: pushEvents.length,
+      commits: totalCommits,
+      recentCommits: pushEvents.length,
       pullRequests,
       activeRepos,
       recentRepos: repos.slice(0, 5).map((repo) => ({
@@ -135,6 +138,35 @@ async function fetchGitHub(username: string) {
   } catch {
     return { ok: false, error: "GitHub stats could not be loaded right now." };
   }
+}
+
+async function fetchTotalCommits(username: string, repos: GitHubRepo[], headers: Record<string, string>) {
+  const commitCounts = await Promise.all(
+    repos.slice(0, 30).map(async (repo) => {
+      try {
+        const response = await fetch(
+          `https://api.github.com/repos/${encodeURIComponent(repo.owner.login)}/${encodeURIComponent(repo.name)}/commits?author=${encodeURIComponent(username)}&per_page=1`,
+          {
+            headers,
+            next: { revalidate: 900 },
+          },
+        );
+
+        if (!response.ok) return 0;
+
+        const link = response.headers.get("link");
+        const lastPage = link?.match(/[?&]page=(\d+)>; rel="last"/)?.[1];
+        if (lastPage) return Number(lastPage);
+
+        const commits = await response.json();
+        return Array.isArray(commits) ? commits.length : 0;
+      } catch {
+        return 0;
+      }
+    }),
+  );
+
+  return commitCounts.reduce((sum, count) => sum + count, 0);
 }
 
 async function fetchLeetCode(username: string) {

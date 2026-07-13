@@ -1,17 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   CalendarDays,
   Check,
   CheckCircle2,
   Circle,
   Flame,
-  Moon,
   Pencil,
   Plus,
   Sparkles,
-  Sun,
   Target,
   TrendingUp,
   Trash2,
@@ -37,6 +35,21 @@ type Goal = {
   priority: Priority;
   completed: boolean;
 };
+
+type HistoryItem = {
+  id: string;
+  label: string;
+  detail: string;
+  timeframe: Timeframe;
+  percent: number;
+  completed: number;
+  total: number;
+  createdAt: string;
+};
+
+const todayLabel = "Tuesday, July 14";
+const todayDay = "14";
+const historyStorageKey = "personal-growth-dashboard-history";
 
 const goalSchema = z.object({
   name: z.string().min(2, "Add a clear goal name."),
@@ -93,9 +106,9 @@ function stats(goals: Goal[]) {
 }
 
 export default function Home() {
-  const [dark, setDark] = useState(false);
   const [active, setActive] = useState<Timeframe>("daily");
   const [goalsByTimeframe, setGoalsByTimeframe] = useState(initialGoals);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
   const [modal, setModal] = useState<{ mode: "add" | "edit"; timeframe: Timeframe; goal?: Goal } | null>(null);
 
   const allGoals = Object.values(goalsByTimeframe).flat();
@@ -104,64 +117,119 @@ export default function Home() {
   const activeStats = stats(activeGoals);
   const xp = overall.completed * 120 + activeStats.percent * 4;
 
+  useEffect(() => {
+    try {
+      const savedHistory = window.localStorage.getItem(historyStorageKey);
+      if (savedHistory) {
+        setHistory(JSON.parse(savedHistory) as HistoryItem[]);
+      }
+    } catch {
+      setHistory([]);
+    }
+  }, []);
+
+  function recordHistory(entry: Omit<HistoryItem, "id" | "createdAt">) {
+    const historyEntry: HistoryItem = {
+      id: crypto.randomUUID(),
+      createdAt: new Date().toISOString(),
+      ...entry,
+    };
+    setHistory((current) => {
+      const nextHistory = [historyEntry, ...current].slice(0, 8);
+      try {
+        window.localStorage.setItem(historyStorageKey, JSON.stringify(nextHistory));
+      } catch {
+        // Local history is a convenience layer, so storage failures should not block goals.
+      }
+      return nextHistory;
+    });
+  }
+
+  function historyDetail(timeframe: Timeframe, nextGoals: Goal[]) {
+    const nextStats = stats(nextGoals);
+    return {
+      timeframe,
+      completed: nextStats.completed,
+      total: nextStats.total,
+      percent: nextStats.percent,
+      detail: `${timeframeCopy[timeframe].title} · ${nextStats.completed}/${nextStats.total} completed`,
+    };
+  }
+
   function upsertGoal(values: GoalFormValues) {
     if (!modal) return;
-    setGoalsByTimeframe((current) => {
-      const existing = current[modal.timeframe];
-      if (modal.mode === "edit" && modal.goal) {
-        return {
-          ...current,
-          [modal.timeframe]: existing.map((item) =>
-            item.id === modal.goal?.id ? { ...item, ...values } : item,
-          ),
-        };
-      }
+    const existing = goalsByTimeframe[modal.timeframe];
+    if (modal.mode === "edit" && modal.goal) {
+      const nextGoals = existing.map((item) =>
+        item.id === modal.goal?.id ? { ...item, ...values } : item,
+      );
+      setGoalsByTimeframe({
+        ...goalsByTimeframe,
+        [modal.timeframe]: nextGoals,
+      });
+      recordHistory({
+        label: `Updated ${values.name}`,
+        ...historyDetail(modal.timeframe, nextGoals),
+      });
+      setModal(null);
+      return;
+    }
 
-      return {
-        ...current,
-        [modal.timeframe]: [
-          ...existing,
-          {
-            id: crypto.randomUUID(),
-            completed: false,
-            createdAt: new Date().toISOString().slice(0, 10),
-            ...values,
-          },
-        ],
-      };
+    const nextGoals = [
+      ...existing,
+      {
+        id: crypto.randomUUID(),
+        completed: false,
+        createdAt: new Date().toISOString().slice(0, 10),
+        ...values,
+      },
+    ];
+    setGoalsByTimeframe({
+      ...goalsByTimeframe,
+      [modal.timeframe]: nextGoals,
+    });
+    recordHistory({
+      label: `Added ${values.name}`,
+      ...historyDetail(modal.timeframe, nextGoals),
     });
     setModal(null);
   }
 
   function toggleGoal(timeframe: Timeframe, id: string) {
-    setGoalsByTimeframe((current) => ({
-      ...current,
-      [timeframe]: current[timeframe].map((item) =>
-        item.id === id ? { ...item, completed: !item.completed } : item,
-      ),
-    }));
+    const goal = goalsByTimeframe[timeframe].find((item) => item.id === id);
+    const nextGoals = goalsByTimeframe[timeframe].map((item) =>
+      item.id === id ? { ...item, completed: !item.completed } : item,
+    );
+    setGoalsByTimeframe({
+      ...goalsByTimeframe,
+      [timeframe]: nextGoals,
+    });
+    if (goal) {
+      recordHistory({
+        label: `${goal.completed ? "Reopened" : "Completed"} ${goal.name}`,
+        ...historyDetail(timeframe, nextGoals),
+      });
+    }
   }
 
   function deleteGoal(timeframe: Timeframe, id: string) {
-    setGoalsByTimeframe((current) => ({
-      ...current,
-      [timeframe]: current[timeframe].filter((item) => item.id !== id),
-    }));
+    const goal = goalsByTimeframe[timeframe].find((item) => item.id === id);
+    const nextGoals = goalsByTimeframe[timeframe].filter((item) => item.id !== id);
+    setGoalsByTimeframe({
+      ...goalsByTimeframe,
+      [timeframe]: nextGoals,
+    });
+    if (goal) {
+      recordHistory({
+        label: `Removed ${goal.name}`,
+        ...historyDetail(timeframe, nextGoals),
+      });
+    }
   }
 
-  const today = useMemo(
-    () =>
-      new Intl.DateTimeFormat("en-US", {
-        weekday: "long",
-        month: "long",
-        day: "numeric",
-      }).format(new Date()),
-    [],
-  );
-
   return (
-    <main className={dark ? "dark" : ""}>
-      <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)] transition-colors">
+    <main>
+      <div className="min-h-screen text-[var(--foreground)] transition-colors">
         <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
           <header className="flex flex-col gap-4 rounded-3xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -170,16 +238,13 @@ export default function Home() {
                 Personal Growth Dashboard
               </p>
               <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">Good Morning, Rutuja</h1>
-              <p className="mt-2 text-sm text-[var(--muted)]">{today} · Keep today calm, clear, and complete.</p>
+              <p className="mt-2 text-sm text-[var(--muted)]">{todayLabel} · Keep today calm, clear, and complete.</p>
             </div>
             <div className="flex items-center gap-2">
               <a className="primary-button" href="/tracking" aria-label="Open coding tracker">
                 <TrendingUp className="h-4 w-4" />
                 Track Coding
               </a>
-              <button className="icon-button" type="button" aria-label="Toggle theme" onClick={() => setDark((value) => !value)}>
-                {dark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-              </button>
             </div>
           </header>
 
@@ -188,7 +253,7 @@ export default function Home() {
             <MetricCard icon={Flame} label="Current Streak" value="0 days" detail="No streak yet" />
             <MetricCard icon={CheckCircle2} label="Completion" value={`${activeStats.percent}%`} detail={`${timeframeCopy[active].title}`} />
             <MetricCard icon={Zap} label="XP" value={xp.toLocaleString()} detail="Growth points earned" />
-            <MetricCard icon={CalendarDays} label="Today's Date" value={new Date().getDate().toString()} detail={today} />
+            <MetricCard icon={CalendarDays} label="Today's Date" value={todayDay} detail={todayLabel} />
           </section>
 
           <section className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-2 shadow-sm">
@@ -206,7 +271,7 @@ export default function Home() {
             </div>
           </section>
 
-          <section className="grid gap-6">
+          <section className="grid gap-6 xl:grid-cols-[minmax(0,3fr)_minmax(280px,1fr)]">
             <GoalPanel
               timeframe={active}
               goals={activeGoals}
@@ -215,7 +280,10 @@ export default function Home() {
               onDelete={(id) => deleteGoal(active, id)}
               onToggle={(id) => toggleGoal(active, id)}
             />
+            <ProgressPanel completed={activeStats.completed} total={activeStats.total} percent={activeStats.percent} />
           </section>
+
+          <HistoryPanel items={history} />
         </div>
       </div>
 
@@ -230,6 +298,51 @@ export default function Home() {
       </AnimatePresence>
     </main>
   );
+}
+
+function HistoryPanel({ items }: { items: HistoryItem[] }) {
+  return (
+    <section className="dashboard-card">
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="section-kicker">History</p>
+          <h2 className="section-title text-2xl">Last Progress</h2>
+        </div>
+        {items.length ? <p className="text-sm text-[var(--muted)]">{items.length} recent changes</p> : null}
+      </div>
+
+      <div className="mt-5 grid gap-3">
+        {items.length === 0 ? (
+          <div className="rounded-3xl border border-dashed border-[var(--border)] p-6 text-center">
+            <TrendingUp className="mx-auto h-7 w-7 text-[var(--accent)]" />
+            <p className="mt-3 font-medium">Your progress history will appear here.</p>
+          </div>
+        ) : (
+          items.map((item) => (
+            <div key={item.id} className="flex flex-col gap-3 rounded-3xl bg-[var(--subtle)] p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <p className="font-semibold">{item.label}</p>
+                <p className="mt-1 text-sm text-[var(--muted)]">{item.detail}</p>
+              </div>
+              <div className="flex items-center gap-4 text-sm">
+                <span className="rounded-full bg-[var(--card)] px-3 py-1 font-semibold">{item.percent}%</span>
+                <span className="text-[var(--muted)]">{formatHistoryTime(item.createdAt)}</span>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </section>
+  );
+}
+
+function formatHistoryTime(value: string) {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(value));
 }
 
 function MetricCard({ icon: Icon, label, value, detail }: { icon: typeof Target; label: string; value: string; detail: string }) {
@@ -247,13 +360,15 @@ function MetricCard({ icon: Icon, label, value, detail }: { icon: typeof Target;
   );
 }
 
-function CompactProgress({ percent }: { percent: number }) {
+function CompactProgress({ percent, size = "sm" }: { percent: number; size?: "sm" | "lg" }) {
   const circumference = 2 * Math.PI * 18;
   const offset = circumference - (percent / 100) * circumference;
+  const svgSize = size === "lg" ? "h-36 w-36" : "h-14 w-14";
+  const textSize = size === "lg" ? "text-4xl" : "text-xl";
 
   return (
-    <div className="flex items-center gap-3">
-      <svg className="h-14 w-14 -rotate-90" viewBox="0 0 48 48" aria-hidden="true">
+    <div className={`flex items-center gap-3 ${size === "lg" ? "flex-col justify-center text-center" : ""}`}>
+      <svg className={`${svgSize} -rotate-90`} viewBox="0 0 48 48" aria-hidden="true">
         <circle cx="24" cy="24" r="18" stroke="var(--track)" strokeWidth="6" fill="none" />
         <motion.circle
           cx="24"
@@ -269,10 +384,24 @@ function CompactProgress({ percent }: { percent: number }) {
         />
       </svg>
       <div>
-        <p className="text-xl font-semibold">{percent}%</p>
+        <p className={`${textSize} font-semibold`}>{percent}%</p>
         <p className="text-sm text-[var(--muted)]">Progress</p>
       </div>
     </div>
+  );
+}
+
+function ProgressPanel({ completed, total, percent }: { completed: number; total: number; percent: number }) {
+  return (
+    <section className="dashboard-card">
+      <div className="grid justify-items-center gap-6 rounded-3xl bg-[var(--subtle)] p-6 text-center">
+        <CompactProgress percent={percent} size="lg" />
+        <div>
+          <p className="text-4xl font-semibold">{completed}/{total}</p>
+          <p className="text-sm text-[var(--muted)]">Completed</p>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -301,19 +430,10 @@ function GoalPanel({
           <h2 className="section-title text-2xl">{timeframeCopy[timeframe].title}</h2>
           <p className="mt-2 max-w-xl text-sm text-[var(--muted)]">{timeframeCopy[timeframe].subtitle}</p>
         </div>
-        <div className="grid gap-3 sm:min-w-64">
-          <button className="primary-button" type="button" onClick={onAdd}>
-            <Plus className="h-4 w-4" />
-            Add Goal
-          </button>
-          <div className="flex items-center justify-between gap-4 rounded-3xl bg-[var(--subtle)] p-4">
-            <CompactProgress percent={current.percent} />
-            <div className="text-right">
-              <p className="text-2xl font-semibold">{current.completed}/{current.total}</p>
-              <p className="text-sm text-[var(--muted)]">Completed</p>
-            </div>
-          </div>
-        </div>
+        <button className="primary-button" type="button" onClick={onAdd}>
+          <Plus className="h-4 w-4" />
+          Add Goal
+        </button>
       </div>
 
       <div className="mt-6">

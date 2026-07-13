@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ArrowLeft,
   CheckCircle2,
@@ -14,6 +14,14 @@ import {
   Trophy,
 } from "lucide-react";
 import { motion } from "framer-motion";
+import {
+  Bar,
+  BarChart,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+} from "recharts";
 
 type Profile = {
   leetcode: string;
@@ -47,6 +55,7 @@ type GitHubStats =
       publicRepos: number;
       followers: number;
       commits: number;
+      recentCommits: number;
       pullRequests: number;
       activeRepos: number;
       recentRepos: { name: string; url: string; stars: number; language: string; pushedAt: string }[];
@@ -59,6 +68,8 @@ type CodingStats = {
   github: GitHubStats | null;
 };
 
+const storageKey = "coding-progress-tracker-v2";
+
 export default function TrackingPage() {
   const [profile, setProfile] = useState<Profile>({ leetcode: "", github: "" });
   const [connected, setConnected] = useState<Profile>({ leetcode: "", github: "" });
@@ -70,6 +81,20 @@ export default function TrackingPage() {
   const leetcode = stats.leetcode;
   const github = stats.github;
   const hasConnection = Boolean(leetcodeUsername || githubUsername);
+
+  useEffect(() => {
+    const saved = window.localStorage.getItem(storageKey);
+    if (!saved) return;
+
+    try {
+      const parsed = JSON.parse(saved) as { profile: Profile; connected: Profile; stats: CodingStats };
+      setProfile(parsed.profile);
+      setConnected(parsed.connected);
+      setStats(parsed.stats);
+    } catch {
+      window.localStorage.removeItem(storageKey);
+    }
+  }, []);
 
   async function connect() {
     const nextProfile = {
@@ -88,6 +113,14 @@ export default function TrackingPage() {
       const response = await fetch(`/api/coding-stats?${params.toString()}`);
       const data = (await response.json()) as CodingStats;
       setStats(data);
+      window.localStorage.setItem(
+        storageKey,
+        JSON.stringify({
+          profile,
+          connected: nextProfile,
+          stats: data,
+        }),
+      );
     } finally {
       setLoading(false);
     }
@@ -102,7 +135,7 @@ export default function TrackingPage() {
     {
       label: "GitHub commits",
       value: github?.ok ? String(github.commits) : "-",
-      detail: github?.ok ? "Recent public push activity" : "Connect GitHub to load analysis",
+      detail: github?.ok ? `${github.recentCommits} recent commits` : "Connect GitHub to load analysis",
     },
     {
       label: "Coding streak",
@@ -112,7 +145,7 @@ export default function TrackingPage() {
   ];
 
   return (
-    <main className="min-h-screen bg-[var(--background)] px-4 py-6 text-[var(--foreground)] sm:px-6 lg:px-8">
+    <main className="min-h-screen px-4 py-6 text-[var(--foreground)] sm:px-6 lg:px-8">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
         <header className="flex flex-col gap-4 rounded-3xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -195,8 +228,8 @@ export default function TrackingPage() {
               username={githubUsername}
               href={github?.ok ? github.profileUrl : "https://github.com"}
               rows={[
-                ["Recent commits", github?.ok ? github.commits : "-"],
                 ["Pull requests", github?.ok ? github.pullRequests : "-"],
+                ["Recent commits", github?.ok ? github.recentCommits : "-"],
                 ["Public repos", github?.ok ? github.publicRepos : "-"],
                 ["Followers", github?.ok ? github.followers : "-"],
               ]}
@@ -280,7 +313,7 @@ function ConnectionCard({
           </div>
           <div>
             <h2 className="section-title">{label}</h2>
-            <p className="mt-1 break-all text-sm text-[var(--muted)]">{connected ? `Connected as ${username}` : "Not connected"}</p>
+            <p className="mt-1 text-sm text-[var(--muted)]">{connected ? "Connected" : "Not connected"}</p>
           </div>
         </div>
         <span className={`badge ${connected ? "connected-badge" : ""}`}>
@@ -327,12 +360,14 @@ function LeetCodeAnalysis({ stats, loading }: { stats: LeetCodeStats | null; loa
       {loading ? <LoadingPanel /> : null}
       {!loading && stats?.ok ? (
         <div className="mt-5 grid flex-1 content-start gap-4">
-          <ProgressRow label="LeetCode progress" value={progress} detail={`${stats.solved}/${solvedGoal} solved goal`} />
-          <div className="grid gap-3 sm:grid-cols-3">
-            <MiniStat label="Easy" value={stats.easy} />
-            <MiniStat label="Medium" value={stats.medium} />
-            <MiniStat label="Hard" value={stats.hard} />
-          </div>
+          <AnalysisChart
+            title="LeetCode graph"
+            data={[
+              { name: "Easy", value: stats.easy, color: "#22c55e" },
+              { name: "Medium", value: stats.medium, color: "#f59e0b" },
+              { name: "Hard", value: stats.hard, color: "#ef4444" },
+            ]}
+          />
           <ListBlock
             title="Recent accepted"
             items={stats.recentAccepted.slice(0, 4).map((item) => ({
@@ -349,9 +384,6 @@ function LeetCodeAnalysis({ stats, loading }: { stats: LeetCodeStats | null; loa
 }
 
 function GitHubAnalysis({ stats, loading }: { stats: GitHubStats | null; loading: boolean }) {
-  const repoGoal = 15;
-  const progress = stats?.ok ? Math.min(Math.round((stats.publicRepos / repoGoal) * 100), 100) : 0;
-
   return (
     <div className="dashboard-card flex h-full flex-col">
       <div className="flex items-center justify-between">
@@ -364,12 +396,10 @@ function GitHubAnalysis({ stats, loading }: { stats: GitHubStats | null; loading
       {loading ? <LoadingPanel /> : null}
       {!loading && stats?.ok ? (
         <div className="mt-5 grid flex-1 content-start gap-4">
-          <ProgressRow label="GitHub progress" value={progress} detail={`${stats.publicRepos}/${repoGoal} repository goal`} />
-          <div className="grid gap-3 sm:grid-cols-3">
-            <MiniStat label="Repos" value={stats.publicRepos} />
-            <MiniStat label="Active" value={stats.activeRepos} />
-            <MiniStat label="Commits" value={stats.commits} />
-          </div>
+          <GitHubLineGraph
+            title="GitHub graph"
+            username={stats.username}
+          />
           <ListBlock
             title="Recent repositories"
             items={stats.recentRepos.slice(0, 4).map((repo) => ({
@@ -402,28 +432,54 @@ function EmptyAnalysis({ text }: { text: string }) {
   );
 }
 
-function ProgressRow({ label, value, detail }: { label: string; value: number; detail: string }) {
+function AnalysisChart({
+  title,
+  data,
+}: {
+  title: string;
+  data: { name: string; value: number; color: string }[];
+}) {
   return (
-    <div>
-      <div className="flex items-center justify-between text-sm">
-        <span>
-          <span className="block font-medium">{label}</span>
-          <span className="mt-1 block text-xs text-[var(--muted)]">{detail}</span>
-        </span>
-        <span className="font-semibold">{value}%</span>
+    <div className="rounded-3xl bg-[var(--subtle)] p-4">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h3 className="text-sm font-semibold">{title}</h3>
+        </div>
       </div>
-      <div className="mt-2 h-2 overflow-hidden rounded-full bg-[var(--track)]">
-        <div className="h-full rounded-full bg-[var(--accent)]" style={{ width: `${Math.max(0, Math.min(value, 100))}%` }} />
+      <div className="mt-4 h-48">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={data}>
+            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: "var(--muted)", fontSize: 12 }} />
+            <Tooltip cursor={{ fill: "var(--track)" }} contentStyle={{ borderRadius: 14, border: "1px solid var(--border)", background: "var(--card)", color: "var(--foreground)" }} />
+            <Bar dataKey="value" radius={[8, 8, 4, 4]}>
+              {data.map((item) => (
+                <Cell key={item.name} fill={item.color} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
       </div>
     </div>
   );
 }
 
-function MiniStat({ label, value }: { label: string; value: number }) {
+function GitHubLineGraph({
+  title,
+  username,
+}: {
+  title: string;
+  username: string;
+}) {
+  const graphUrl = `https://github-readme-activity-graph.vercel.app/graph?username=${encodeURIComponent(username)}&theme=github-dark`;
+
   return (
-    <div className="rounded-2xl bg-[var(--subtle)] p-4">
-      <p className="text-sm text-[var(--muted)]">{label}</p>
-      <p className="mt-1 text-2xl font-semibold">{value}</p>
+    <div className="rounded-3xl bg-[var(--subtle)] p-4">
+      <h3 className="text-sm font-semibold">{title}</h3>
+      <img
+        className="mt-4 w-full rounded-2xl border border-[var(--border)] bg-[#0d1117]"
+        src={graphUrl}
+        alt={`${username} GitHub activity graph`}
+      />
     </div>
   );
 }
