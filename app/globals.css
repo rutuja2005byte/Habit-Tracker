@@ -203,8 +203,14 @@ button {
 }
 
 .badge {
+  gap: 6px;
   background: var(--subtle);
   color: var(--muted);
+}
+
+.connected-badge {
+  background: color-mix(in srgb, var(--success) 14%, transparent);
+  color: var(--success);
 }
 
 .priority-low {
