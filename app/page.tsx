@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import {
   BarChart3,
   CalendarDays,
@@ -9,12 +10,12 @@ import {
   Circle,
   Flame,
   Moon,
-  MoreHorizontal,
   Pencil,
   Plus,
   Sparkles,
   Sun,
   Target,
+  TrendingUp,
   Trash2,
   Trophy,
   X,
@@ -26,8 +27,6 @@ import {
   Pie,
   PieChart,
   ResponsiveContainer,
-  Tooltip,
-  XAxis,
 } from "recharts";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -187,9 +186,10 @@ export default function Home() {
               <p className="mt-2 text-sm text-[var(--muted)]">{today} · Keep today calm, clear, and complete.</p>
             </div>
             <div className="flex items-center gap-2">
-              <button className="icon-button" type="button" aria-label="More options">
-                <MoreHorizontal className="h-5 w-5" />
-              </button>
+              <Link className="primary-button" href="/tracking" aria-label="Open coding tracker">
+                <TrendingUp className="h-4 w-4" />
+                Track Coding
+              </Link>
               <button className="icon-button" type="button" aria-label="Toggle theme" onClick={() => setDark((value) => !value)}>
                 {dark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
               </button>
@@ -198,7 +198,7 @@ export default function Home() {
 
           <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
             <MetricCard icon={Target} label="Overall Progress" value={`${overall.percent}%`} detail={`${overall.completed}/${overall.total} complete`} />
-            <MetricCard icon={Flame} label="Current Streak" value="12 days" detail="Best rhythm this month" />
+            <MetricCard icon={Flame} label="Current Streak" value="0 days" detail="No streak yet" />
             <MetricCard icon={CheckCircle2} label="Completion" value={`${activeStats.percent}%`} detail={`${timeframeCopy[active].title}`} />
             <MetricCard icon={Zap} label="XP" value={xp.toLocaleString()} detail="Growth points earned" />
             <MetricCard icon={CalendarDays} label="Today's Date" value={new Date().getDate().toString()} detail={today} />
@@ -256,11 +256,6 @@ export default function Home() {
                     <StatLine label="Total goals" value={activeStats.total} />
                   </div>
                 </div>
-                {active === "monthly" ? (
-                  <div className="mt-4 rounded-2xl bg-[var(--subtle)] p-4 text-sm text-[var(--muted)]">
-                    Monthly Reflection: protect deep work blocks, keep workouts early, and review Sunday evenings.
-                  </div>
-                ) : null}
               </div>
             </aside>
           </section>
