@@ -8,7 +8,6 @@ import {
   CheckCircle2,
   Circle,
   Flame,
-  LineChart,
   Moon,
   MoreHorizontal,
   Pencil,
@@ -23,8 +22,6 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Bar,
-  BarChart,
   Cell,
   Pie,
   PieChart,
@@ -61,30 +58,10 @@ const goalSchema = z.object({
 type GoalFormValues = z.infer<typeof goalSchema>;
 
 const initialGoals: Record<Timeframe, Goal[]> = {
-  daily: [
-    goal("Workout", "Health", "45 minute strength session", "High", true),
-    goal("Read 20 pages", "Learning", "Atomic Habits chapter notes", "Medium", true),
-    goal("Leetcode", "Career", "Two array problems", "High", false),
-    goal("Build project", "Creative", "Ship dashboard polish", "High", false),
-    goal("Journal", "Mindfulness", "Evening reflection", "Low", true),
-  ],
-  weekly: [
-    goal("Plan the week", "Planning", "Review commitments and schedule focus blocks", "High", true),
-    goal("Publish one essay", "Creative", "Draft, edit, and share", "Medium", false),
-    goal("3 workouts", "Health", "Strength, cardio, mobility", "High", true),
-    goal("Call family", "Personal", "Sunday check-in", "Low", false),
-  ],
-  monthly: [
-    goal("Complete portfolio case study", "Career", "Write one detailed project story", "High", false),
-    goal("Save investment amount", "Finance", "Move funds on salary day", "Medium", true),
-    goal("Monthly reflection", "Reflection", "What worked, what drained energy, what changes", "Low", false),
-  ],
-  yearly: [
-    goal("Land an internship", "Career", "Apply consistently and practice interviews", "High", false),
-    goal("Build portfolio", "Creative", "Three polished projects", "High", true),
-    goal("500 Leetcode", "Learning", "Consistent practice streak", "Medium", false),
-    goal("Read 20 books", "Growth", "Mix of technical and personal books", "Medium", false),
-  ],
+  daily: [],
+  weekly: [],
+  monthly: [],
+  yearly: [],
 };
 
 const tabs: { id: Timeframe; label: string }[] = [
@@ -117,24 +94,6 @@ const timeframeCopy: Record<Timeframe, { title: string; subtitle: string; empty:
   },
 };
 
-function goal(
-  name: string,
-  category: string,
-  description: string,
-  priority: Priority,
-  completed = false,
-): Goal {
-  return {
-    id: crypto.randomUUID(),
-    name,
-    category,
-    description,
-    priority,
-    completed,
-    createdAt: new Date().toISOString().slice(0, 10),
-  };
-}
-
 function stats(goals: Goal[]) {
   const completed = goals.filter((item) => item.completed).length;
   const total = goals.length;
@@ -153,11 +112,6 @@ export default function Home() {
   const activeGoals = goalsByTimeframe[active];
   const activeStats = stats(activeGoals);
   const xp = overall.completed * 120 + activeStats.percent * 4;
-
-  const chartData = tabs.map((tab) => ({
-    name: tab.label,
-    value: stats(goalsByTimeframe[tab.id]).percent,
-  }));
 
   const completionData = [
     { name: "Completed", value: activeStats.completed, color: "#22c55e" },
@@ -276,25 +230,6 @@ export default function Home() {
             />
 
             <aside className="grid gap-6">
-              <div className="dashboard-card">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="section-kicker">Analytics</p>
-                    <h2 className="section-title">Progress by timeframe</h2>
-                  </div>
-                  <LineChart className="h-5 w-5 text-[var(--accent)]" />
-                </div>
-                <div className="mt-5 h-52">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={chartData}>
-                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: "var(--muted)", fontSize: 12 }} />
-                      <Tooltip cursor={{ fill: "var(--subtle)" }} contentStyle={{ borderRadius: 14, border: "1px solid var(--border)", background: "var(--card)", color: "var(--foreground)" }} />
-                      <Bar dataKey="value" radius={[8, 8, 4, 4]} fill="var(--accent)" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-
               <div className="dashboard-card">
                 <div className="flex items-center justify-between">
                   <div>
