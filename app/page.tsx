@@ -320,19 +320,16 @@ function GoalPanel({
         </button>
       </div>
 
-      <div className="mt-6 grid gap-4 lg:grid-cols-[180px_1fr]">
-        <div className="rounded-3xl bg-[var(--subtle)] p-5">
-          <CircularProgress percent={current.percent} />
-          <div className="mt-5 h-2 overflow-hidden rounded-full bg-[var(--track)]">
-            <motion.div
-              className="h-full rounded-full bg-[var(--accent)]"
-              initial={{ width: 0 }}
-              animate={{ width: `${current.percent}%` }}
-            />
+      <div className="mt-6">
+        <div className="mb-4 rounded-3xl bg-[var(--subtle)] p-4">
+          <div className="flex items-center justify-between gap-4 text-sm">
+            <span className="font-medium">{current.percent}% complete</span>
+            <span className="text-[var(--muted)]">{current.completed} of {current.total}</span>
           </div>
-          <p className="mt-3 text-center text-sm font-medium">{current.percent}% complete</p>
+          <div className="mt-3 h-2 overflow-hidden rounded-full bg-[var(--track)]">
+            <motion.div className="h-full rounded-full bg-[var(--accent)]" initial={{ width: 0 }} animate={{ width: `${current.percent}%` }} />
+          </div>
         </div>
-
         <div className="space-y-3">
           {goals.length === 0 ? (
             <div className="rounded-3xl border border-dashed border-[var(--border)] p-8 text-center">
@@ -373,32 +370,6 @@ function GoalPanel({
           )}
         </div>
       </div>
-    </div>
-  );
-}
-
-function CircularProgress({ percent }: { percent: number }) {
-  const circumference = 2 * Math.PI * 44;
-  const offset = circumference - (percent / 100) * circumference;
-
-  return (
-    <div className="relative mx-auto h-36 w-36">
-      <svg className="-rotate-90" viewBox="0 0 100 100">
-        <circle cx="50" cy="50" r="44" stroke="var(--track)" strokeWidth="8" fill="none" />
-        <motion.circle
-          cx="50"
-          cy="50"
-          r="44"
-          stroke="var(--accent)"
-          strokeWidth="8"
-          strokeLinecap="round"
-          fill="none"
-          strokeDasharray={circumference}
-          initial={{ strokeDashoffset: circumference }}
-          animate={{ strokeDashoffset: offset }}
-        />
-      </svg>
-      <div className="absolute inset-0 grid place-items-center text-3xl font-semibold">{percent}%</div>
     </div>
   );
 }
