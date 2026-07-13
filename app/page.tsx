@@ -301,20 +301,22 @@ function GoalPanel({
           <h2 className="section-title text-2xl">{timeframeCopy[timeframe].title}</h2>
           <p className="mt-2 max-w-xl text-sm text-[var(--muted)]">{timeframeCopy[timeframe].subtitle}</p>
         </div>
-        <button className="primary-button" type="button" onClick={onAdd}>
-          <Plus className="h-4 w-4" />
-          Add Goal
-        </button>
+        <div className="grid gap-3 sm:min-w-64">
+          <button className="primary-button" type="button" onClick={onAdd}>
+            <Plus className="h-4 w-4" />
+            Add Goal
+          </button>
+          <div className="flex items-center justify-between gap-4 rounded-3xl bg-[var(--subtle)] p-4">
+            <CompactProgress percent={current.percent} />
+            <div className="text-right">
+              <p className="text-2xl font-semibold">{current.completed}/{current.total}</p>
+              <p className="text-sm text-[var(--muted)]">Completed</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="mt-6">
-        <div className="mb-4 flex items-center justify-between gap-4 rounded-3xl bg-[var(--subtle)] p-4">
-          <CompactProgress percent={current.percent} />
-          <div className="text-right">
-            <p className="text-2xl font-semibold">{current.completed}/{current.total}</p>
-            <p className="text-sm text-[var(--muted)]">Completed</p>
-          </div>
-        </div>
         <div className="space-y-3">
           {goals.length === 0 ? (
             <div className="rounded-3xl border border-dashed border-[var(--border)] p-8 text-center">

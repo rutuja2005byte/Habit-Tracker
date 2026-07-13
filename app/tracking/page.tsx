@@ -105,14 +105,9 @@ export default function TrackingPage() {
       detail: github?.ok ? "Recent public push activity" : "Connect GitHub to load analysis",
     },
     {
-      label: "Repositories",
-      value: github?.ok ? String(github.publicRepos) : "-",
-      detail: github?.ok ? `${github.activeRepos} active in the last 90 days` : "Connect GitHub to load analysis",
-    },
-    {
-      label: "Coding score",
-      value: String((leetcode?.ok ? leetcode.solved : 0) + (github?.ok ? github.commits + github.activeRepos : 0)),
-      detail: "Solved problems + recent public activity",
+      label: "Coding streak",
+      value: getCodingStreak(leetcode, github),
+      detail: hasConnection ? "Based on latest public coding activity" : "Connect profiles to calculate streak",
     },
   ];
 
@@ -132,7 +127,7 @@ export default function TrackingPage() {
           </button>
         </header>
 
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <section className="grid gap-4 md:grid-cols-3">
           {topStats.map((item) => (
             <div className="dashboard-card min-h-32" key={item.label}>
               <p className="text-sm text-[var(--muted)]">{item.label}</p>
@@ -234,6 +229,29 @@ function extractProfileId(value: string, provider: "leetcode" | "github") {
   } catch {
     return trimmed.replace(/^@/, "");
   }
+}
+
+function getCodingStreak(leetcode: LeetCodeStats | null, github: GitHubStats | null) {
+  const dates = [
+    ...(leetcode?.ok ? leetcode.recentAccepted.map((item) => item.date) : []),
+    ...(github?.ok ? github.recentActivity.map((item) => item.date) : []),
+  ]
+    .map((date) => new Date(date))
+    .filter((date) => Number.isFinite(date.getTime()))
+    .map((date) => date.toISOString().slice(0, 10));
+
+  const uniqueDays = new Set(dates);
+  if (!uniqueDays.size) return "-";
+
+  const cursor = new Date();
+  let streak = 0;
+
+  while (uniqueDays.has(cursor.toISOString().slice(0, 10))) {
+    streak += 1;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+
+  return `${streak} ${streak === 1 ? "day" : "days"}`;
 }
 
 function ConnectionCard({
