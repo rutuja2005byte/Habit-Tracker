@@ -6,7 +6,7 @@ Drizzle support.
 
 ## Prerequisites
 
-- Node.js `>=22.13.0`
+- Node.js `>=22.0.0`
 
 ## Quick Start
 
