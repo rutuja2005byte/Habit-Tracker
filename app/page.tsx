@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import {
   BarChart3,
   CalendarDays,
@@ -186,10 +185,10 @@ export default function Home() {
               <p className="mt-2 text-sm text-[var(--muted)]">{today} · Keep today calm, clear, and complete.</p>
             </div>
             <div className="flex items-center gap-2">
-              <Link className="primary-button" href="/tracking" aria-label="Open coding tracker">
+              <a className="primary-button" href="/tracking" aria-label="Open coding tracker">
                 <TrendingUp className="h-4 w-4" />
                 Track Coding
-              </Link>
+              </a>
               <button className="icon-button" type="button" aria-label="Toggle theme" onClick={() => setDark((value) => !value)}>
                 {dark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
               </button>

@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo, useState } from "react";
 import {
   ArrowLeft,
@@ -56,10 +55,10 @@ export default function TrackingPage() {
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
         <header className="flex flex-col gap-4 rounded-3xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <Link className="inline-flex items-center gap-2 text-sm font-medium text-[var(--muted)] transition hover:text-[var(--foreground)]" href="/">
+            <a className="inline-flex items-center gap-2 text-sm font-medium text-[var(--muted)] transition hover:text-[var(--foreground)]" href="/">
               <ArrowLeft className="h-4 w-4" />
               Dashboard
-            </Link>
+            </a>
             <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">Coding Progress Tracker</h1>
             <p className="mt-2 max-w-2xl text-sm text-[var(--muted)]">
               Connect your LeetCode and GitHub usernames to keep coding practice and project work in one place.
