@@ -4,8 +4,8 @@ A modern habit tracking application that helps users build consistency by tracki
 
 ## Preview
 
-<img src="./img.png" alt="Habit Tracker Dashboard" width="48%" />
-<img src="./img2.png" alt="Habit Tracker Analytics" width="48%" />
+<img src="./img.png" alt="Habit Tracker Dashboard" width="100%" />
+<img src="./img2.png" alt="Habit Tracker Analytics" width="100%" />
 
 ## Features
 
