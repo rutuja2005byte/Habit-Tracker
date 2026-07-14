@@ -36,20 +36,9 @@ type Goal = {
   completed: boolean;
 };
 
-type HistoryItem = {
-  id: string;
-  label: string;
-  detail: string;
-  timeframe: Timeframe;
-  percent: number;
-  completed: number;
-  total: number;
-  createdAt: string;
-};
-
 const todayLabel = "Tuesday, July 14";
 const todayDay = "14";
-const historyStorageKey = "personal-growth-dashboard-history";
+const goalsStorageKey = "personal-growth-dashboard-goals";
 
 const goalSchema = z.object({
   name: z.string().min(2, "Add a clear goal name."),
@@ -108,7 +97,6 @@ function stats(goals: Goal[]) {
 export default function Home() {
   const [active, setActive] = useState<Timeframe>("daily");
   const [goalsByTimeframe, setGoalsByTimeframe] = useState(initialGoals);
-  const [history, setHistory] = useState<HistoryItem[]>([]);
   const [modal, setModal] = useState<{ mode: "add" | "edit"; timeframe: Timeframe; goal?: Goal } | null>(null);
 
   const allGoals = Object.values(goalsByTimeframe).flat();
@@ -118,42 +106,28 @@ export default function Home() {
   const xp = overall.completed * 120 + activeStats.percent * 4;
 
   useEffect(() => {
-    try {
-      const savedHistory = window.localStorage.getItem(historyStorageKey);
-      if (savedHistory) {
-        setHistory(JSON.parse(savedHistory) as HistoryItem[]);
+    queueMicrotask(() => {
+      try {
+        const savedGoals = window.localStorage.getItem(goalsStorageKey);
+        if (savedGoals) {
+          setGoalsByTimeframe({
+            ...initialGoals,
+            ...(JSON.parse(savedGoals) as Record<Timeframe, Goal[]>),
+          });
+        }
+      } catch {
+        setGoalsByTimeframe(initialGoals);
       }
-    } catch {
-      setHistory([]);
-    }
+    });
   }, []);
 
-  function recordHistory(entry: Omit<HistoryItem, "id" | "createdAt">) {
-    const historyEntry: HistoryItem = {
-      id: crypto.randomUUID(),
-      createdAt: new Date().toISOString(),
-      ...entry,
-    };
-    setHistory((current) => {
-      const nextHistory = [historyEntry, ...current].slice(0, 8);
-      try {
-        window.localStorage.setItem(historyStorageKey, JSON.stringify(nextHistory));
-      } catch {
-        // Local history is a convenience layer, so storage failures should not block goals.
-      }
-      return nextHistory;
-    });
-  }
-
-  function historyDetail(timeframe: Timeframe, nextGoals: Goal[]) {
-    const nextStats = stats(nextGoals);
-    return {
-      timeframe,
-      completed: nextStats.completed,
-      total: nextStats.total,
-      percent: nextStats.percent,
-      detail: `${timeframeCopy[timeframe].title} · ${nextStats.completed}/${nextStats.total} completed`,
-    };
+  function saveGoals(nextGoalsByTimeframe: Record<Timeframe, Goal[]>) {
+    setGoalsByTimeframe(nextGoalsByTimeframe);
+    try {
+      window.localStorage.setItem(goalsStorageKey, JSON.stringify(nextGoalsByTimeframe));
+    } catch {
+      // Keep the dashboard usable if browser storage is unavailable.
+    }
   }
 
   function upsertGoal(values: GoalFormValues) {
@@ -163,13 +137,9 @@ export default function Home() {
       const nextGoals = existing.map((item) =>
         item.id === modal.goal?.id ? { ...item, ...values } : item,
       );
-      setGoalsByTimeframe({
+      saveGoals({
         ...goalsByTimeframe,
         [modal.timeframe]: nextGoals,
-      });
-      recordHistory({
-        label: `Updated ${values.name}`,
-        ...historyDetail(modal.timeframe, nextGoals),
       });
       setModal(null);
       return;
@@ -184,47 +154,29 @@ export default function Home() {
         ...values,
       },
     ];
-    setGoalsByTimeframe({
+    saveGoals({
       ...goalsByTimeframe,
       [modal.timeframe]: nextGoals,
-    });
-    recordHistory({
-      label: `Added ${values.name}`,
-      ...historyDetail(modal.timeframe, nextGoals),
     });
     setModal(null);
   }
 
   function toggleGoal(timeframe: Timeframe, id: string) {
-    const goal = goalsByTimeframe[timeframe].find((item) => item.id === id);
     const nextGoals = goalsByTimeframe[timeframe].map((item) =>
       item.id === id ? { ...item, completed: !item.completed } : item,
     );
-    setGoalsByTimeframe({
+    saveGoals({
       ...goalsByTimeframe,
       [timeframe]: nextGoals,
     });
-    if (goal) {
-      recordHistory({
-        label: `${goal.completed ? "Reopened" : "Completed"} ${goal.name}`,
-        ...historyDetail(timeframe, nextGoals),
-      });
-    }
   }
 
   function deleteGoal(timeframe: Timeframe, id: string) {
-    const goal = goalsByTimeframe[timeframe].find((item) => item.id === id);
     const nextGoals = goalsByTimeframe[timeframe].filter((item) => item.id !== id);
-    setGoalsByTimeframe({
+    saveGoals({
       ...goalsByTimeframe,
       [timeframe]: nextGoals,
     });
-    if (goal) {
-      recordHistory({
-        label: `Removed ${goal.name}`,
-        ...historyDetail(timeframe, nextGoals),
-      });
-    }
   }
 
   return (
@@ -282,8 +234,6 @@ export default function Home() {
             />
             <ProgressPanel completed={activeStats.completed} total={activeStats.total} percent={activeStats.percent} />
           </section>
-
-          <HistoryPanel items={history} />
         </div>
       </div>
 
@@ -298,51 +248,6 @@ export default function Home() {
       </AnimatePresence>
     </main>
   );
-}
-
-function HistoryPanel({ items }: { items: HistoryItem[] }) {
-  return (
-    <section className="dashboard-card">
-      <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="section-kicker">History</p>
-          <h2 className="section-title text-2xl">Last Progress</h2>
-        </div>
-        {items.length ? <p className="text-sm text-[var(--muted)]">{items.length} recent changes</p> : null}
-      </div>
-
-      <div className="mt-5 grid gap-3">
-        {items.length === 0 ? (
-          <div className="rounded-3xl border border-dashed border-[var(--border)] p-6 text-center">
-            <TrendingUp className="mx-auto h-7 w-7 text-[var(--accent)]" />
-            <p className="mt-3 font-medium">Your progress history will appear here.</p>
-          </div>
-        ) : (
-          items.map((item) => (
-            <div key={item.id} className="flex flex-col gap-3 rounded-3xl bg-[var(--subtle)] p-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="min-w-0">
-                <p className="font-semibold">{item.label}</p>
-                <p className="mt-1 text-sm text-[var(--muted)]">{item.detail}</p>
-              </div>
-              <div className="flex items-center gap-4 text-sm">
-                <span className="rounded-full bg-[var(--card)] px-3 py-1 font-semibold">{item.percent}%</span>
-                <span className="text-[var(--muted)]">{formatHistoryTime(item.createdAt)}</span>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-    </section>
-  );
-}
-
-function formatHistoryTime(value: string) {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(new Date(value));
 }
 
 function MetricCard({ icon: Icon, label, value, detail }: { icon: typeof Target; label: string; value: string; detail: string }) {
