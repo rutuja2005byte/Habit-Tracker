@@ -1,32 +1,51 @@
 # Habit Tracker
 
-A clean full-stack Next.js project integrated with Supabase as the primary database and authentication provider.
+A modern habit tracking application that helps users build consistency by tracking daily, weekly, monthly, and yearly goals. The application provides a clean and intuitive dashboard to monitor progress and maintain productive habits.
 
-## Prerequisites
+## Features
 
-- Node.js `>=22.0.0`
+* Track daily, weekly, monthly, and yearly habits
+* Create, update, and delete habits
+* Monitor habit completion and progress
+* Responsive and modern user interface
+* Fast and optimized performance
+* Clean dashboard for productivity tracking
+
+## Tech Stack
+
+| Category  | Technology                 |
+| --------- | -------------------------- |
+| Framework | Next.js                    |
+| Language  | TypeScript                 |
+| Styling   | Tailwind CSS               |
+| Database  | *(Add your database here)* |
 
 ## Getting Started
 
-First, configure your environment variables by copying `.env.local.example` to `.env.local` and filling in your Supabase credentials:
-
 ```bash
-NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-supabase-anon-key
-```
+# Clone the repository
+git clone https://github.com/rutuja2005byte/Habit-Tracker.git
 
-Then, install dependencies and run the development server:
+# Navigate to the project
+cd Habit-Tracker
 
-```bash
+# Install dependencies
 npm install
+
+# Start the development server
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000` in your browser.
 
-## Useful Commands
+## Project Structure
 
-- `npm run dev`: Start local development server
-- `npm run build`: Build the production bundle
-- `npm run start`: Start the production server
-- `npm run lint`: Lint the codebase using ESLint
+```text
+Habit-Tracker/
+├── app/
+├── components/
+├── lib/
+├── public/
+├── styles/
+└── README.md
+```
