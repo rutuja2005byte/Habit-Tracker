@@ -2,6 +2,14 @@
 
 A modern habit tracking application that helps users build consistency by tracking daily, weekly, monthly, and yearly goals. The application provides a clean and intuitive dashboard to monitor progress and maintain productive habits.
 
+## Preview
+
+<p align="center">
+  <img src="./img.png" alt="Habit Tracker Dashboard" width="48%" />
+  <img src="./img2.png" alt="Habit Tracker Analytics" width="48%" />
+</p>
+
+
 ## Features
 
 * Track daily, weekly, monthly, and yearly habits
