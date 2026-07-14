@@ -4,20 +4,17 @@ A modern habit tracking application that helps users build consistency by tracki
 
 ## Preview
 
-<p align="center">
-  <img src="./img.png" alt="Habit Tracker Dashboard" width="48%" />
-  <img src="./img2.png" alt="Habit Tracker Analytics" width="48%" />
-</p>
-
+<img src="./img.png" alt="Habit Tracker Dashboard" width="48%" />
+<img src="./img2.png" alt="Habit Tracker Analytics" width="48%" />
 
 ## Features
 
-* Track daily, weekly, monthly, and yearly habits
-* Create, update, and delete habits
-* Monitor habit completion and progress
-* Responsive and modern user interface
-* Fast and optimized performance
-* Clean dashboard for productivity tracking
+- Track daily, weekly, monthly, and yearly habits
+- Create, update, and delete habits
+- Monitor habit completion and progress
+- Responsive and modern user interface
+- Fast and optimized performance
+- Clean dashboard for productivity tracking
 
 ## Tech Stack
 
@@ -26,7 +23,7 @@ A modern habit tracking application that helps users build consistency by tracki
 | Framework | Next.js                    |
 | Language  | TypeScript                 |
 | Styling   | Tailwind CSS               |
-| Database  | *(Add your database here)* |
+| Database  | _(Add your database here)_ |
 
 ## Getting Started
 
