@@ -199,10 +199,6 @@ export default function TrackingPage() {
           <button className="icon-button" type="button" aria-label="Refresh tracking data" onClick={connect} disabled={loading || !hasConnection}>
             {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <RefreshCw className="h-5 w-5" />}
           </button>
-          <Link className="secondary-button" href="/progress">
-            <Trophy className="h-4 w-4" />
-            Progress
-          </Link>
         </header>
 
         <section className="grid gap-4 md:grid-cols-3">
