@@ -23,6 +23,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   calculateStreak,
+  dailyCompletionHistory,
   dailyGoalHistoryStorageKey,
   formatStreak,
   localDateKey,
@@ -119,7 +120,7 @@ export default function Home() {
   const activeStats = stats(activeGoals);
   const xp = overall.completed * 120 + activeStats.percent * 4;
   const dailyComplete = isDailyComplete(goalsByTimeframe.daily);
-  const currentStreak = calculateStreak(dailyHistory, dailyComplete, today);
+  const currentStreak = calculateStreak(dailyCompletionHistory(dailyHistory), dailyComplete, today);
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -138,7 +139,7 @@ export default function Home() {
           setGoalsByTimeframe(parsedGoals);
           saveDailyHistory({
             ...parsedHistory,
-            [todayKey]: isDailyComplete(parsedGoals.daily),
+            [todayKey]: dailyCompletionPercent(parsedGoals.daily),
           });
         }
       } catch {
@@ -159,7 +160,7 @@ export default function Home() {
   function syncDailyHistory(dailyGoals: Goal[]) {
     const nextHistory = {
       ...dailyHistory,
-      [todayKey]: isDailyComplete(dailyGoals),
+      [todayKey]: dailyCompletionPercent(dailyGoals),
     };
     saveDailyHistory(nextHistory);
   }
@@ -300,6 +301,11 @@ export default function Home() {
 
 function isDailyComplete(goals: Goal[]) {
   return goals.length > 0 && goals.every((item) => item.completed);
+}
+
+function dailyCompletionPercent(goals: Goal[]) {
+  if (!goals.length) return 0;
+  return Math.round((goals.filter((item) => item.completed).length / goals.length) * 100);
 }
 
 function MetricCard({ icon: Icon, label, value, detail }: { icon: typeof Target; label: string; value: string; detail: string }) {

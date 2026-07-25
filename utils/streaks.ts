@@ -1,4 +1,4 @@
-export type DailyGoalHistory = Record<string, boolean>;
+export type DailyGoalHistory = Record<string, boolean | number>;
 export type CodingDayHistory = Record<string, { leetcodeAccepted: number; githubCommits: number }>;
 
 export const dailyGoalHistoryStorageKey = "personal-growth-dashboard-daily-history";
@@ -43,5 +43,16 @@ export function isCodingDayComplete(day?: { leetcodeAccepted: number; githubComm
 export function codingCompletionHistory(history: CodingDayHistory) {
   return Object.fromEntries(
     Object.entries(history).map(([date, day]) => [date, isCodingDayComplete(day)]),
+  ) as Record<string, boolean>;
+}
+
+export function dailyGoalProgress(value: boolean | number | undefined) {
+  if (typeof value === "number") return Math.max(0, Math.min(value, 100));
+  return value ? 100 : 0;
+}
+
+export function dailyCompletionHistory(history: DailyGoalHistory) {
+  return Object.fromEntries(
+    Object.entries(history).map(([date, value]) => [date, dailyGoalProgress(value) >= 100]),
   ) as Record<string, boolean>;
 }

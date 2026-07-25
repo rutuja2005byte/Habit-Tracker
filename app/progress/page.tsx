@@ -27,6 +27,7 @@ import {
 import {
   codingDayHistoryStorageKey,
   dailyGoalHistoryStorageKey,
+  dailyGoalProgress,
   isCodingDayComplete,
   localDateKey,
   type CodingDayHistory,
@@ -40,6 +41,7 @@ type DayProgress = {
   label: string;
   month: string;
   dailyGoalDone: boolean;
+  dailyGoalPercent: number;
   codingDone: boolean;
   leetcodeAccepted: number;
   githubCommits: number;
@@ -111,7 +113,7 @@ export default function ProgressPage() {
 
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <Metric icon={CalendarDays} label="Tracked days" value={String(days.length)} detail="Jan 1 through Dec 30" />
-          <Metric icon={Goal} label="Daily goals" value={String(completedGoalDays)} detail="Days with all daily goals done" />
+          <Metric icon={Goal} label="Daily goals" value={String(completedGoalDays)} detail="100% daily-goal days" />
           <Metric icon={Code2} label="Coding days" value={String(completedCodingDays)} detail="3+ LeetCode and 5+ GitHub commits" />
           <Metric icon={Flame} label="Full progress days" value={String(fullDays)} detail="Both goal and coding complete" />
         </section>
@@ -146,24 +148,39 @@ function DailyView({ days, today }: { days: DayProgress[]; today?: DayProgress }
             <p className="section-kicker">Daily</p>
             <h2 className="section-title">Year map</h2>
           </div>
-          <p className="text-sm text-[var(--muted)]">Green means both daily goals and coding target are complete.</p>
+          <p className="text-sm text-[var(--muted)]">Darker green means more daily goals are complete.</p>
         </div>
         <div className="mt-5 grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(22px, 1fr))" }}>
           {days.map((day) => (
             <div
               key={day.date}
-              className={`aspect-square rounded-lg border border-[var(--border)] ${day.score === 2 ? "bg-[var(--success)]" : day.score === 1 ? "bg-[var(--warning)]" : "bg-[var(--subtle)]"}`}
-              title={`${day.label}: ${day.dailyGoalDone ? "daily goals done" : "daily goals open"}, ${day.codingDone ? "coding done" : "coding open"}`}
+              className={`aspect-square rounded-lg border border-[var(--border)] ${goalCellClass(day.dailyGoalPercent)}`}
+              title={`${day.label}: ${day.dailyGoalPercent}% daily goals complete`}
             />
           ))}
         </div>
       </div>
 
       <div className="dashboard-card">
+        <p className="section-kicker">GitHub commits</p>
+        <h2 className="section-title mt-1">Commit map</h2>
+        <p className="mt-2 text-sm text-[var(--muted)]">Green intensity follows daily GitHub commit count.</p>
+        <div className="mt-5 grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(18px, 1fr))" }}>
+          {days.map((day) => (
+            <div
+              key={`${day.date}-commits`}
+              className={`aspect-square rounded-md border border-[var(--border)] ${commitCellClass(day.githubCommits)}`}
+              title={`${day.label}: ${day.githubCommits} GitHub commits`}
+            />
+          ))}
+        </div>
+      </div>
+
+      <div className="dashboard-card xl:col-span-2">
         <p className="section-kicker">Today</p>
         <h2 className="section-title mt-1">{today?.label ?? "No day selected"}</h2>
         <div className="mt-5 grid gap-3">
-          <StatusRow label="Daily goals" done={Boolean(today?.dailyGoalDone)} detail={today?.dailyGoalDone ? "Completed" : "Not complete yet"} />
+          <StatusRow label="Daily goals" done={Boolean(today?.dailyGoalDone)} detail={`${today?.dailyGoalPercent ?? 0}% complete`} />
           <StatusRow label="LeetCode" done={(today?.leetcodeAccepted ?? 0) >= 3} detail={`${today?.leetcodeAccepted ?? 0} accepted today`} />
           <StatusRow label="GitHub" done={(today?.githubCommits ?? 0) >= 5} detail={`${today?.githubCommits ?? 0} commits today`} />
         </div>
@@ -208,12 +225,12 @@ function MonthlyView({ data }: { data: ReturnType<typeof groupByMonth> }) {
           <BarChart data={data}>
             <CartesianGrid stroke="var(--track)" vertical={false} />
             <XAxis dataKey="label" tick={{ fill: "var(--muted)", fontSize: 12 }} />
-            <YAxis allowDecimals={false} tick={{ fill: "var(--muted)", fontSize: 12 }} />
+            <YAxis domain={[0, 100]} tick={{ fill: "var(--muted)", fontSize: 12 }} />
             <Tooltip contentStyle={{ borderRadius: 14, border: "1px solid var(--border)", background: "var(--card)", color: "var(--foreground)" }} />
-            <Bar dataKey="goalDays" name="Daily goal days" radius={[8, 8, 4, 4]}>
+            <Bar dataKey="goalTargetPercent" name="Daily goals target %" radius={[8, 8, 4, 4]}>
               {data.map((item) => <Cell key={`${item.label}-goals`} fill={item.color} />)}
             </Bar>
-            <Bar dataKey="codingDays" name="Coding days" radius={[8, 8, 4, 4]} fill="#34c759" />
+            <Bar dataKey="codingTargetPercent" name="Coding target %" radius={[8, 8, 4, 4]} fill="#34c759" />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -243,7 +260,8 @@ function buildYearProgress(year: number, dailyHistory: DailyGoalHistory, codingH
   for (const cursor = new Date(start); cursor <= end; cursor.setDate(cursor.getDate() + 1)) {
     const date = localDateKey(cursor);
     const codingDay = codingHistory[date];
-    const dailyGoalDone = Boolean(dailyHistory[date]);
+    const dailyGoalPercent = dailyGoalProgress(dailyHistory[date]);
+    const dailyGoalDone = dailyGoalPercent >= 100;
     const codingDone = isCodingDayComplete(codingDay);
 
     days.push({
@@ -251,6 +269,7 @@ function buildYearProgress(year: number, dailyHistory: DailyGoalHistory, codingH
       label: formatter.format(cursor),
       month: monthFormatter.format(cursor),
       dailyGoalDone,
+      dailyGoalPercent,
       codingDone,
       leetcodeAccepted: codingDay?.leetcodeAccepted ?? 0,
       githubCommits: codingDay?.githubCommits ?? 0,
@@ -284,22 +303,45 @@ function groupByWeek(days: DayProgress[]) {
 
 function groupByMonth(days: DayProgress[]) {
   const colors = ["#4f8cff", "#34c759", "#ff9f0a", "#ef4444"];
-  const months = new Map<string, { label: string; goalDays: number; codingDays: number; fullDays: number; color: string }>();
+  const months = new Map<string, { label: string; days: number; goalTotal: number; goalDays: number; codingDays: number; fullDays: number; goalTargetPercent: number; codingTargetPercent: number; color: string }>();
 
   days.forEach((day) => {
     const current = months.get(day.month) ?? {
       label: day.month,
+      days: 0,
+      goalTotal: 0,
       goalDays: 0,
       codingDays: 0,
       fullDays: 0,
+      goalTargetPercent: 0,
+      codingTargetPercent: 0,
       color: colors[months.size % colors.length],
     };
 
+    current.days += 1;
+    current.goalTotal += day.dailyGoalPercent;
     current.goalDays += Number(day.dailyGoalDone);
     current.codingDays += Number(day.codingDone);
     current.fullDays += Number(day.score === 2);
+    current.goalTargetPercent = Math.round(current.goalTotal / current.days);
+    current.codingTargetPercent = Math.round((current.codingDays / current.days) * 100);
     months.set(day.month, current);
   });
 
   return Array.from(months.values());
+}
+
+function goalCellClass(percent: number) {
+  if (percent >= 100) return "bg-[var(--success)]";
+  if (percent >= 75) return "bg-emerald-300";
+  if (percent >= 50) return "bg-emerald-200";
+  if (percent > 0) return "bg-emerald-100";
+  return "bg-[var(--subtle)]";
+}
+
+function commitCellClass(commits: number) {
+  if (commits >= 5) return "bg-[var(--success)]";
+  if (commits >= 3) return "bg-emerald-300";
+  if (commits >= 1) return "bg-emerald-200";
+  return "bg-[var(--subtle)]";
 }
