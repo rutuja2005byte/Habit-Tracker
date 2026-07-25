@@ -12,6 +12,9 @@ type GitHubRepo = {
 type GitHubEvent = {
   type: string;
   created_at: string;
+  payload?: {
+    commits?: { sha: string }[];
+  };
 };
 
 type LeetCodeQuestionCount = {
@@ -46,7 +49,7 @@ const leetcodeQuery = `
       globalRanking
       attendedContestsCount
     }
-    recentAcSubmissionList(username: $username, limit: 5) {
+    recentAcSubmissionList(username: $username, limit: 20) {
       title
       titleSlug
       timestamp
@@ -105,6 +108,10 @@ async function fetchGitHub(username: string) {
     const events = eventsResponse.ok ? ((await eventsResponse.json()) as GitHubEvent[]) : [];
 
     const pushEvents = events.filter((event) => event.type === "PushEvent");
+    const todayKey = localDateKey();
+    const todayCommits = pushEvents
+      .filter((event) => localDateKey(new Date(event.created_at)) === todayKey)
+      .reduce((sum, event) => sum + (event.payload?.commits?.length ?? 0), 0);
     const pullRequests = events.filter((event) => event.type === "PullRequestEvent").length;
     const activeRepos = repos.filter((repo) => {
       const pushedAt = new Date(repo.pushed_at).getTime();
@@ -121,6 +128,7 @@ async function fetchGitHub(username: string) {
       followers: user.followers as number,
       commits: totalCommits,
       recentCommits: pushEvents.length,
+      todayCommits,
       pullRequests,
       activeRepos,
       recentRepos: repos.slice(0, 5).map((repo) => ({
@@ -198,6 +206,10 @@ async function fetchLeetCode(username: string) {
     const allQuestions = totals.find((item) => item.difficulty === "All")?.count ?? 0;
     const contest = payload.data.userContestRanking;
     const recent = payload.data.recentAcSubmissionList ?? [];
+    const todayKey = localDateKey();
+    const todayAccepted = recent.filter(
+      (item: { timestamp: string }) => localDateKey(new Date(Number(item.timestamp) * 1000)) === todayKey,
+    ).length;
 
     return {
       ok: true,
@@ -212,6 +224,7 @@ async function fetchLeetCode(username: string) {
       rating: contest?.rating ? Math.round(contest.rating) : null,
       globalRanking: contest?.globalRanking ?? null,
       contests: contest?.attendedContestsCount ?? 0,
+      todayAccepted,
       recentAccepted: recent.map((item: { title: string; titleSlug: string; timestamp: string }) => ({
         title: item.title,
         url: `https://leetcode.com/problems/${item.titleSlug}/`,
@@ -221,4 +234,11 @@ async function fetchLeetCode(username: string) {
   } catch {
     return { ok: false, error: "LeetCode stats could not be loaded right now." };
   }
+}
+
+function localDateKey(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }

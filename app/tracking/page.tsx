@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useCallback, useEffect, useState } from "react";
 import {
   ArrowLeft,
   CheckCircle2,
@@ -22,6 +23,15 @@ import {
   Tooltip,
   XAxis,
 } from "recharts";
+import {
+  calculateStreak,
+  codingCompletionHistory,
+  codingDayHistoryStorageKey,
+  formatStreak,
+  isCodingDayComplete,
+  localDateKey,
+  type CodingDayHistory,
+} from "@/utils/streaks";
 
 type Profile = {
   leetcode: string;
@@ -42,6 +52,7 @@ type LeetCodeStats =
       rating: number | null;
       globalRanking: number | null;
       contests: number;
+      todayAccepted: number;
       recentAccepted: { title: string; url: string; date: string }[];
     }
   | { ok: false; error: string };
@@ -56,6 +67,7 @@ type GitHubStats =
       followers: number;
       commits: number;
       recentCommits: number;
+      todayCommits: number;
       pullRequests: number;
       activeRepos: number;
       recentRepos: { name: string; url: string; stars: number; language: string; pushedAt: string }[];
@@ -74,6 +86,7 @@ export default function TrackingPage() {
   const [profile, setProfile] = useState<Profile>({ leetcode: "", github: "" });
   const [connected, setConnected] = useState<Profile>({ leetcode: "", github: "" });
   const [stats, setStats] = useState<CodingStats>({ leetcode: null, github: null });
+  const [codingHistory, setCodingHistory] = useState<CodingDayHistory>({});
   const [loading, setLoading] = useState(false);
 
   const leetcodeUsername = connected.leetcode;
@@ -81,20 +94,68 @@ export default function TrackingPage() {
   const leetcode = stats.leetcode;
   const github = stats.github;
   const hasConnection = Boolean(leetcodeUsername || githubUsername);
+  const todayCoding = codingHistory[localDateKey()];
+  const codingStreak = calculateStreak(
+    codingCompletionHistory(codingHistory),
+    isCodingDayComplete(todayCoding),
+  );
 
-  useEffect(() => {
-    const saved = window.localStorage.getItem(storageKey);
-    if (!saved) return;
-
+  const loadStats = useCallback(async (
+    nextProfile: Profile,
+    nextConnected: Profile,
+    baseHistory: CodingDayHistory,
+  ) => {
+    setLoading(true);
     try {
-      const parsed = JSON.parse(saved) as { profile: Profile; connected: Profile; stats: CodingStats };
-      setProfile(parsed.profile);
-      setConnected(parsed.connected);
-      setStats(parsed.stats);
-    } catch {
-      window.localStorage.removeItem(storageKey);
+      const params = new URLSearchParams();
+      if (nextConnected.leetcode) params.set("leetcode", nextConnected.leetcode);
+      if (nextConnected.github) params.set("github", nextConnected.github);
+
+      const response = await fetch(`/api/coding-stats?${params.toString()}`);
+      const data = (await response.json()) as CodingStats;
+      const nextHistory = updateCodingHistory(baseHistory, data);
+
+      setStats(data);
+      setCodingHistory(nextHistory);
+      window.localStorage.setItem(
+        storageKey,
+        JSON.stringify({
+          profile: nextProfile,
+          connected: nextConnected,
+          stats: data,
+        }),
+      );
+      window.localStorage.setItem(codingDayHistoryStorageKey, JSON.stringify(nextHistory));
+    } finally {
+      setLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      const saved = window.localStorage.getItem(storageKey);
+      const savedHistory = window.localStorage.getItem(codingDayHistoryStorageKey);
+
+      try {
+        const parsedHistory = savedHistory ? (JSON.parse(savedHistory) as CodingDayHistory) : {};
+        setCodingHistory(parsedHistory);
+
+        if (saved) {
+          const parsed = JSON.parse(saved) as { profile: Profile; connected: Profile; stats: CodingStats };
+          setProfile(parsed.profile);
+          setConnected(parsed.connected);
+          setStats(parsed.stats);
+
+          if (parsed.connected.leetcode || parsed.connected.github) {
+            void loadStats(parsed.profile, parsed.connected, parsedHistory);
+          }
+        }
+      } catch {
+        window.localStorage.removeItem(storageKey);
+        window.localStorage.removeItem(codingDayHistoryStorageKey);
+      }
+    });
+  }, [loadStats]);
 
   async function connect() {
     const nextProfile = {
@@ -103,27 +164,7 @@ export default function TrackingPage() {
     };
 
     setConnected(nextProfile);
-    setLoading(true);
-
-    try {
-      const params = new URLSearchParams();
-      if (nextProfile.leetcode) params.set("leetcode", nextProfile.leetcode);
-      if (nextProfile.github) params.set("github", nextProfile.github);
-
-      const response = await fetch(`/api/coding-stats?${params.toString()}`);
-      const data = (await response.json()) as CodingStats;
-      setStats(data);
-      window.localStorage.setItem(
-        storageKey,
-        JSON.stringify({
-          profile,
-          connected: nextProfile,
-          stats: data,
-        }),
-      );
-    } finally {
-      setLoading(false);
-    }
+    await loadStats(profile, nextProfile, codingHistory);
   }
 
   const topStats = [
@@ -139,8 +180,8 @@ export default function TrackingPage() {
     },
     {
       label: "Coding streak",
-      value: getCodingStreak(leetcode, github),
-      detail: hasConnection ? "Based on latest public coding activity" : "Connect profiles to calculate streak",
+      value: hasConnection ? formatStreak(codingStreak) : "-",
+      detail: hasConnection ? "3+ LeetCode accepts and 1+ GitHub commit per day" : "Connect profiles to calculate streak",
     },
   ];
 
@@ -149,10 +190,10 @@ export default function TrackingPage() {
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
         <header className="flex flex-col gap-4 rounded-3xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <a className="inline-flex items-center gap-2 text-sm font-medium text-[var(--muted)] transition hover:text-[var(--foreground)]" href="/">
+            <Link className="inline-flex items-center gap-2 text-sm font-medium text-[var(--muted)] transition hover:text-[var(--foreground)]" href="/">
               <ArrowLeft className="h-4 w-4" />
               Dashboard
-            </a>
+            </Link>
             <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">Coding Progress Tracker</h1>
           </div>
           <button className="icon-button" type="button" aria-label="Refresh tracking data" onClick={connect} disabled={loading || !hasConnection}>
@@ -215,9 +256,9 @@ export default function TrackingPage() {
               href={leetcode?.ok ? leetcode.profileUrl : "https://leetcode.com"}
               rows={[
                 ["Problems solved", leetcode?.ok ? leetcode.solved : "-"],
+                ["Today accepted", leetcode?.ok ? leetcode.todayAccepted : "-"],
                 ["Easy / Medium / Hard", leetcode?.ok ? `${leetcode.easy} / ${leetcode.medium} / ${leetcode.hard}` : "-"],
                 ["Contest rating", leetcode?.ok ? leetcode.rating ?? "Unrated" : "-"],
-                ["Contests", leetcode?.ok ? leetcode.contests : "-"],
               ]}
               error={leetcode && !leetcode.ok ? leetcode.error : undefined}
             />
@@ -229,9 +270,9 @@ export default function TrackingPage() {
               href={github?.ok ? github.profileUrl : "https://github.com"}
               rows={[
                 ["Pull requests", github?.ok ? github.pullRequests : "-"],
+                ["Today commits", github?.ok ? github.todayCommits : "-"],
                 ["Recent commits", github?.ok ? github.recentCommits : "-"],
                 ["Public repos", github?.ok ? github.publicRepos : "-"],
-                ["Followers", github?.ok ? github.followers : "-"],
               ]}
               error={github && !github.ok ? github.error : undefined}
             />
@@ -264,27 +305,18 @@ function extractProfileId(value: string, provider: "leetcode" | "github") {
   }
 }
 
-function getCodingStreak(leetcode: LeetCodeStats | null, github: GitHubStats | null) {
-  const dates = [
-    ...(leetcode?.ok ? leetcode.recentAccepted.map((item) => item.date) : []),
-    ...(github?.ok ? github.recentActivity.map((item) => item.date) : []),
-  ]
-    .map((date) => new Date(date))
-    .filter((date) => Number.isFinite(date.getTime()))
-    .map((date) => date.toISOString().slice(0, 10));
+function updateCodingHistory(history: CodingDayHistory, stats: CodingStats) {
+  const todayKey = localDateKey();
+  const leetcodeAccepted = stats.leetcode?.ok ? stats.leetcode.todayAccepted : 0;
+  const githubCommits = stats.github?.ok ? stats.github.todayCommits : 0;
 
-  const uniqueDays = new Set(dates);
-  if (!uniqueDays.size) return "-";
-
-  const cursor = new Date();
-  let streak = 0;
-
-  while (uniqueDays.has(cursor.toISOString().slice(0, 10))) {
-    streak += 1;
-    cursor.setDate(cursor.getDate() - 1);
-  }
-
-  return `${streak} ${streak === 1 ? "day" : "days"}`;
+  return {
+    ...history,
+    [todayKey]: {
+      leetcodeAccepted,
+      githubCommits,
+    },
+  };
 }
 
 function ConnectionCard({
@@ -313,7 +345,7 @@ function ConnectionCard({
           </div>
           <div>
             <h2 className="section-title">{label}</h2>
-            <p className="mt-1 text-sm text-[var(--muted)]">{connected ? "Connected" : "Not connected"}</p>
+            <p className="mt-1 text-sm text-[var(--muted)]">{connected ? username : "Not connected"}</p>
           </div>
         </div>
         <span className={`badge ${connected ? "connected-badge" : ""}`}>
@@ -345,9 +377,6 @@ function ConnectionCard({
 }
 
 function LeetCodeAnalysis({ stats, loading }: { stats: LeetCodeStats | null; loading: boolean }) {
-  const solvedGoal = 100;
-  const progress = stats?.ok ? Math.min(Math.round((stats.solved / solvedGoal) * 100), 100) : 0;
-
   return (
     <div className="dashboard-card flex h-full flex-col">
       <div className="flex items-center justify-between">

@@ -21,6 +21,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  calculateStreak,
+  dailyGoalHistoryStorageKey,
+  formatStreak,
+  localDateKey,
+  type DailyGoalHistory,
+} from "@/utils/streaks";
 
 type Timeframe = "daily" | "weekly" | "monthly" | "yearly";
 type Priority = "Low" | "Medium" | "High";
@@ -36,8 +43,6 @@ type Goal = {
   completed: boolean;
 };
 
-const todayLabel = "Tuesday, July 14";
-const todayDay = "14";
 const goalsStorageKey = "personal-growth-dashboard-goals";
 
 const goalSchema = z.object({
@@ -97,32 +102,71 @@ function stats(goals: Goal[]) {
 export default function Home() {
   const [active, setActive] = useState<Timeframe>("daily");
   const [goalsByTimeframe, setGoalsByTimeframe] = useState(initialGoals);
+  const [dailyHistory, setDailyHistory] = useState<DailyGoalHistory>({});
   const [modal, setModal] = useState<{ mode: "add" | "edit"; timeframe: Timeframe; goal?: Goal } | null>(null);
 
+  const today = new Date();
+  const todayKey = localDateKey(today);
+  const todayLabel = new Intl.DateTimeFormat("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  }).format(today);
+  const todayDay = new Intl.DateTimeFormat("en-US", { day: "numeric" }).format(today);
   const allGoals = Object.values(goalsByTimeframe).flat();
   const overall = stats(allGoals);
   const activeGoals = goalsByTimeframe[active];
   const activeStats = stats(activeGoals);
   const xp = overall.completed * 120 + activeStats.percent * 4;
+  const dailyComplete = isDailyComplete(goalsByTimeframe.daily);
+  const currentStreak = calculateStreak(dailyHistory, dailyComplete, today);
 
   useEffect(() => {
     queueMicrotask(() => {
       try {
         const savedGoals = window.localStorage.getItem(goalsStorageKey);
+        const savedHistory = window.localStorage.getItem(dailyGoalHistoryStorageKey);
+        const parsedHistory = savedHistory ? (JSON.parse(savedHistory) as DailyGoalHistory) : {};
+
+        setDailyHistory(parsedHistory);
+
         if (savedGoals) {
-          setGoalsByTimeframe({
+          const parsedGoals = {
             ...initialGoals,
             ...(JSON.parse(savedGoals) as Record<Timeframe, Goal[]>),
+          };
+          setGoalsByTimeframe(parsedGoals);
+          saveDailyHistory({
+            ...parsedHistory,
+            [todayKey]: isDailyComplete(parsedGoals.daily),
           });
         }
       } catch {
         setGoalsByTimeframe(initialGoals);
       }
     });
-  }, []);
+  }, [todayKey]);
+
+  function saveDailyHistory(nextHistory: DailyGoalHistory) {
+    setDailyHistory(nextHistory);
+    try {
+      window.localStorage.setItem(dailyGoalHistoryStorageKey, JSON.stringify(nextHistory));
+    } catch {
+      // Keep streaks in memory if browser storage is unavailable.
+    }
+  }
+
+  function syncDailyHistory(dailyGoals: Goal[]) {
+    const nextHistory = {
+      ...dailyHistory,
+      [todayKey]: isDailyComplete(dailyGoals),
+    };
+    saveDailyHistory(nextHistory);
+  }
 
   function saveGoals(nextGoalsByTimeframe: Record<Timeframe, Goal[]>) {
     setGoalsByTimeframe(nextGoalsByTimeframe);
+    syncDailyHistory(nextGoalsByTimeframe.daily);
     try {
       window.localStorage.setItem(goalsStorageKey, JSON.stringify(nextGoalsByTimeframe));
     } catch {
@@ -202,7 +246,7 @@ export default function Home() {
 
           <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
             <MetricCard icon={Target} label="Overall Progress" value={`${overall.percent}%`} detail={`${overall.completed}/${overall.total} complete`} />
-            <MetricCard icon={Flame} label="Current Streak" value="0 days" detail="No streak yet" />
+            <MetricCard icon={Flame} label="Current Streak" value={formatStreak(currentStreak)} detail={dailyComplete ? "Daily goals complete today" : "Complete all daily goals to extend it"} />
             <MetricCard icon={CheckCircle2} label="Completion" value={`${activeStats.percent}%`} detail={`${timeframeCopy[active].title}`} />
             <MetricCard icon={Zap} label="XP" value={xp.toLocaleString()} detail="Growth points earned" />
             <MetricCard icon={CalendarDays} label="Today's Date" value={todayDay} detail={todayLabel} />
@@ -248,6 +292,10 @@ export default function Home() {
       </AnimatePresence>
     </main>
   );
+}
+
+function isDailyComplete(goals: Goal[]) {
+  return goals.length > 0 && goals.every((item) => item.completed);
 }
 
 function MetricCard({ icon: Icon, label, value, detail }: { icon: typeof Target; label: string; value: string; detail: string }) {
