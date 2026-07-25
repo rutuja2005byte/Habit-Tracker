@@ -27,7 +27,9 @@ import {
   dailyGoalHistoryStorageKey,
   formatStreak,
   localDateKey,
+  monthlyGoalHistoryStorageKey,
   type DailyGoalHistory,
+  weeklyGoalHistoryStorageKey,
 } from "@/utils/streaks";
 
 type Timeframe = "daily" | "weekly" | "monthly" | "yearly";
@@ -104,6 +106,8 @@ export default function Home() {
   const [active, setActive] = useState<Timeframe>("daily");
   const [goalsByTimeframe, setGoalsByTimeframe] = useState(initialGoals);
   const [dailyHistory, setDailyHistory] = useState<DailyGoalHistory>({});
+  const [weeklyHistory, setWeeklyHistory] = useState<DailyGoalHistory>({});
+  const [monthlyHistory, setMonthlyHistory] = useState<DailyGoalHistory>({});
   const [modal, setModal] = useState<{ mode: "add" | "edit"; timeframe: Timeframe; goal?: Goal } | null>(null);
 
   const today = new Date();
@@ -127,9 +131,15 @@ export default function Home() {
       try {
         const savedGoals = window.localStorage.getItem(goalsStorageKey);
         const savedHistory = window.localStorage.getItem(dailyGoalHistoryStorageKey);
+        const savedWeeklyHistory = window.localStorage.getItem(weeklyGoalHistoryStorageKey);
+        const savedMonthlyHistory = window.localStorage.getItem(monthlyGoalHistoryStorageKey);
         const parsedHistory = savedHistory ? (JSON.parse(savedHistory) as DailyGoalHistory) : {};
+        const parsedWeeklyHistory = savedWeeklyHistory ? (JSON.parse(savedWeeklyHistory) as DailyGoalHistory) : {};
+        const parsedMonthlyHistory = savedMonthlyHistory ? (JSON.parse(savedMonthlyHistory) as DailyGoalHistory) : {};
 
         setDailyHistory(parsedHistory);
+        setWeeklyHistory(parsedWeeklyHistory);
+        setMonthlyHistory(parsedMonthlyHistory);
 
         if (savedGoals) {
           const parsedGoals = {
@@ -140,6 +150,14 @@ export default function Home() {
           saveDailyHistory({
             ...parsedHistory,
             [todayKey]: dailyCompletionPercent(parsedGoals.daily),
+          });
+          saveTimeframeHistory(weeklyGoalHistoryStorageKey, setWeeklyHistory, {
+            ...parsedWeeklyHistory,
+            [todayKey]: dailyCompletionPercent(parsedGoals.weekly),
+          });
+          saveTimeframeHistory(monthlyGoalHistoryStorageKey, setMonthlyHistory, {
+            ...parsedMonthlyHistory,
+            [todayKey]: dailyCompletionPercent(parsedGoals.monthly),
           });
         }
       } catch {
@@ -165,9 +183,34 @@ export default function Home() {
     saveDailyHistory(nextHistory);
   }
 
+  function saveTimeframeHistory(
+    storageKey: string,
+    setHistory: (history: DailyGoalHistory) => void,
+    nextHistory: DailyGoalHistory,
+  ) {
+    setHistory(nextHistory);
+    try {
+      window.localStorage.setItem(storageKey, JSON.stringify(nextHistory));
+    } catch {
+      // Keep progress in memory if browser storage is unavailable.
+    }
+  }
+
+  function syncGoalHistories(nextGoalsByTimeframe: Record<Timeframe, Goal[]>) {
+    syncDailyHistory(nextGoalsByTimeframe.daily);
+    saveTimeframeHistory(weeklyGoalHistoryStorageKey, setWeeklyHistory, {
+      ...weeklyHistory,
+      [todayKey]: dailyCompletionPercent(nextGoalsByTimeframe.weekly),
+    });
+    saveTimeframeHistory(monthlyGoalHistoryStorageKey, setMonthlyHistory, {
+      ...monthlyHistory,
+      [todayKey]: dailyCompletionPercent(nextGoalsByTimeframe.monthly),
+    });
+  }
+
   function saveGoals(nextGoalsByTimeframe: Record<Timeframe, Goal[]>) {
     setGoalsByTimeframe(nextGoalsByTimeframe);
-    syncDailyHistory(nextGoalsByTimeframe.daily);
+    syncGoalHistories(nextGoalsByTimeframe);
     try {
       window.localStorage.setItem(goalsStorageKey, JSON.stringify(nextGoalsByTimeframe));
     } catch {

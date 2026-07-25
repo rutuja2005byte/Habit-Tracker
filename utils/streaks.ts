@@ -2,6 +2,8 @@ export type DailyGoalHistory = Record<string, boolean | number>;
 export type CodingDayHistory = Record<string, { leetcodeAccepted: number; githubCommits: number }>;
 
 export const dailyGoalHistoryStorageKey = "personal-growth-dashboard-daily-history";
+export const weeklyGoalHistoryStorageKey = "personal-growth-dashboard-weekly-history";
+export const monthlyGoalHistoryStorageKey = "personal-growth-dashboard-monthly-history";
 export const codingDayHistoryStorageKey = "coding-progress-tracker-day-history";
 
 export function localDateKey(date = new Date()) {

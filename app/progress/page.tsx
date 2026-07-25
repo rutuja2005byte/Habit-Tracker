@@ -28,8 +28,10 @@ import {
   dailyGoalProgress,
   isCodingDayComplete,
   localDateKey,
+  monthlyGoalHistoryStorageKey,
   type CodingDayHistory,
   type DailyGoalHistory,
+  weeklyGoalHistoryStorageKey,
 } from "@/utils/streaks";
 
 type ViewMode = "daily" | "weekly" | "monthly";
@@ -55,6 +57,8 @@ const viewTabs: { id: ViewMode; label: string }[] = [
 export default function ProgressPage() {
   const [view, setView] = useState<ViewMode>("daily");
   const [dailyHistory, setDailyHistory] = useState<DailyGoalHistory>({});
+  const [weeklyGoalHistory, setWeeklyGoalHistory] = useState<DailyGoalHistory>({});
+  const [monthlyGoalHistory, setMonthlyGoalHistory] = useState<DailyGoalHistory>({});
   const [codingHistory, setCodingHistory] = useState<CodingDayHistory>({});
 
   const year = new Date().getFullYear();
@@ -62,8 +66,8 @@ export default function ProgressPage() {
     () => buildYearProgress(year, dailyHistory, codingHistory),
     [year, dailyHistory, codingHistory],
   );
-  const weekly = useMemo(() => groupByWeek(days), [days]);
-  const monthly = useMemo(() => groupByMonth(days), [days]);
+  const weekly = useMemo(() => groupByWeek(days, weeklyGoalHistory), [days, weeklyGoalHistory]);
+  const monthly = useMemo(() => groupByMonth(days, monthlyGoalHistory), [days, monthlyGoalHistory]);
   const completedGoalDays = days.filter((day) => day.dailyGoalDone).length;
   const completedCodingDays = days.filter((day) => day.codingDone).length;
   const fullDays = days.filter((day) => day.score === 2).length;
@@ -73,11 +77,17 @@ export default function ProgressPage() {
     queueMicrotask(() => {
       try {
         const savedDaily = window.localStorage.getItem(dailyGoalHistoryStorageKey);
+        const savedWeekly = window.localStorage.getItem(weeklyGoalHistoryStorageKey);
+        const savedMonthly = window.localStorage.getItem(monthlyGoalHistoryStorageKey);
         const savedCoding = window.localStorage.getItem(codingDayHistoryStorageKey);
         setDailyHistory(savedDaily ? (JSON.parse(savedDaily) as DailyGoalHistory) : {});
+        setWeeklyGoalHistory(savedWeekly ? (JSON.parse(savedWeekly) as DailyGoalHistory) : {});
+        setMonthlyGoalHistory(savedMonthly ? (JSON.parse(savedMonthly) as DailyGoalHistory) : {});
         setCodingHistory(savedCoding ? (JSON.parse(savedCoding) as CodingDayHistory) : {});
       } catch {
         setDailyHistory({});
+        setWeeklyGoalHistory({});
+        setMonthlyGoalHistory({});
         setCodingHistory({});
       }
     });
@@ -264,10 +274,8 @@ function buildYearProgress(year: number, dailyHistory: DailyGoalHistory, codingH
   return days;
 }
 
-function groupByWeek(days: DayProgress[]) {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const weeks = new Map<string, { label: string; days: number; goalTotal: number; codingDays: number; weeklyPercent: number; weekEnd: Date }>();
+function groupByWeek(days: DayProgress[], weeklyGoalHistory: DailyGoalHistory) {
+  const weeks = new Map<string, { label: string; days: number; goalTotal: number; weeklyPercent: number }>();
 
   days.forEach((day) => {
     const dayDate = new Date(`${day.date}T00:00:00`);
@@ -278,48 +286,34 @@ function groupByWeek(days: DayProgress[]) {
       label: `W${weeks.size + 1}`,
       days: 0,
       goalTotal: 0,
-      codingDays: 0,
       weeklyPercent: 0,
-      weekEnd,
     };
 
     current.days += 1;
-    current.goalTotal += day.dailyGoalPercent;
-    current.codingDays += Number(day.codingDone);
-    current.weeklyPercent = current.weekEnd <= today
-      ? Math.round(current.goalTotal / current.days)
-      : 0;
+    current.goalTotal += dailyGoalProgress(weeklyGoalHistory[day.date]);
+    current.weeklyPercent = Math.round(current.goalTotal / current.days);
     weeks.set(weekKey, current);
   });
 
   return Array.from(weeks.values());
 }
 
-function groupByMonth(days: DayProgress[]) {
+function groupByMonth(days: DayProgress[], monthlyGoalHistory: DailyGoalHistory) {
   const colors = ["#4f8cff", "#34c759", "#ff9f0a", "#ef4444"];
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const months = new Map<string, { label: string; days: number; goalTotal: number; monthlyPercent: number; color: string; lastDate: Date }>();
+  const months = new Map<string, { label: string; days: number; goalTotal: number; monthlyPercent: number; color: string }>();
 
   days.forEach((day) => {
-    const dayDate = new Date(`${day.date}T00:00:00`);
-    const realLastDate = new Date(dayDate.getFullYear(), dayDate.getMonth() + 1, 0);
-    const yearLastDate = new Date(dayDate.getFullYear(), 11, 30);
-    const lastDate = realLastDate > yearLastDate ? yearLastDate : realLastDate;
     const current = months.get(day.month) ?? {
       label: day.month,
       days: 0,
       goalTotal: 0,
       monthlyPercent: 0,
       color: colors[months.size % colors.length],
-      lastDate,
     };
 
     current.days += 1;
-    current.goalTotal += day.dailyGoalPercent;
-    current.monthlyPercent = current.lastDate <= today
-      ? Math.round(current.goalTotal / current.days)
-      : 0;
+    current.goalTotal += dailyGoalProgress(monthlyGoalHistory[day.date]);
+    current.monthlyPercent = Math.round(current.goalTotal / current.days);
     months.set(day.month, current);
   });
 
