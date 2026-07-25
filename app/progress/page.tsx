@@ -157,12 +157,12 @@ function DailyView({ days, today }: { days: DayProgress[]; today?: DayProgress }
           </div>
         </div>
         <div
-          className="mt-5 grid overflow-hidden"
+          className="mt-5 grid w-full overflow-hidden"
           style={{
-            gridAutoColumns: "14px",
+            gridAutoColumns: "minmax(0, 1fr)",
             gridAutoFlow: "column",
             gridTemplateRows: "repeat(7, 14px)",
-            gap: "5px",
+            gap: "6px",
           }}
         >
           {days.map((day) => (
@@ -287,7 +287,7 @@ function groupByWeek(days: DayProgress[]) {
     current.goalTotal += day.dailyGoalPercent;
     current.codingDays += Number(day.codingDone);
     current.weeklyPercent = current.weekEnd <= today
-      ? Math.round(((current.goalTotal / current.days) + ((current.codingDays / current.days) * 100)) / 2)
+      ? Math.round(current.goalTotal / current.days)
       : 0;
     weeks.set(weekKey, current);
   });
@@ -299,7 +299,7 @@ function groupByMonth(days: DayProgress[]) {
   const colors = ["#4f8cff", "#34c759", "#ff9f0a", "#ef4444"];
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const months = new Map<string, { label: string; days: number; goalTotal: number; codingDays: number; monthlyPercent: number; color: string; lastDate: Date }>();
+  const months = new Map<string, { label: string; days: number; goalTotal: number; monthlyPercent: number; color: string; lastDate: Date }>();
 
   days.forEach((day) => {
     const dayDate = new Date(`${day.date}T00:00:00`);
@@ -310,7 +310,6 @@ function groupByMonth(days: DayProgress[]) {
       label: day.month,
       days: 0,
       goalTotal: 0,
-      codingDays: 0,
       monthlyPercent: 0,
       color: colors[months.size % colors.length],
       lastDate,
@@ -318,9 +317,8 @@ function groupByMonth(days: DayProgress[]) {
 
     current.days += 1;
     current.goalTotal += day.dailyGoalPercent;
-    current.codingDays += Number(day.codingDone);
     current.monthlyPercent = current.lastDate <= today
-      ? Math.round(((current.goalTotal / current.days) + ((current.codingDays / current.days) * 100)) / 2)
+      ? Math.round(current.goalTotal / current.days)
       : 0;
     months.set(day.month, current);
   });
