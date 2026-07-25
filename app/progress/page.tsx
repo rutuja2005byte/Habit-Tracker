@@ -150,16 +150,14 @@ function DailyView({ days, today }: { days: DayProgress[]; today?: DayProgress }
         </div>
       </div>
 
-      <div className="dashboard-card py-4">
+      <div className="dashboard-card min-h-64 py-4">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="section-kicker">Daily</p>
-            <h2 className="section-title">Year map</h2>
           </div>
-          <p className="text-sm text-[var(--muted)]">Darker green means more daily goals are complete.</p>
         </div>
         <div
-          className="mt-4 grid overflow-hidden"
+          className="mt-5 grid overflow-hidden"
           style={{
             gridAutoColumns: "14px",
             gridAutoFlow: "column",
@@ -185,7 +183,6 @@ function WeeklyView({ data }: { data: ReturnType<typeof groupByWeek> }) {
     <section className="dashboard-card">
       <div>
         <p className="section-kicker">Weekly</p>
-        <h2 className="section-title">Sunday weekly percentage</h2>
       </div>
       <div className="mt-5 h-96">
         <ResponsiveContainer width="100%" height="100%">
@@ -207,7 +204,6 @@ function MonthlyView({ data }: { data: ReturnType<typeof groupByMonth> }) {
     <section className="dashboard-card">
       <div>
         <p className="section-kicker">Monthly</p>
-        <h2 className="section-title">Month-end percentage</h2>
       </div>
       <div className="mt-5 h-96">
         <ResponsiveContainer width="100%" height="100%">
