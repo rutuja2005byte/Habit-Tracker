@@ -37,7 +37,7 @@ export function calculateStreak(
 }
 
 export function isCodingDayComplete(day?: { leetcodeAccepted: number; githubCommits: number }) {
-  return Boolean(day && day.leetcodeAccepted >= 3 && day.githubCommits >= 1);
+  return Boolean(day && day.leetcodeAccepted >= 3 && day.githubCommits >= 5);
 }
 
 export function codingCompletionHistory(history: CodingDayHistory) {

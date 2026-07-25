@@ -237,6 +237,10 @@ export default function Home() {
               <p className="mt-2 text-sm text-[var(--muted)]">{todayLabel} · Keep today calm, clear, and complete.</p>
             </div>
             <div className="flex items-center gap-2">
+              <a className="secondary-button" href="/progress" aria-label="Open yearly progress">
+                <Trophy className="h-4 w-4" />
+                Progress
+              </a>
               <a className="primary-button" href="/tracking" aria-label="Open coding tracker">
                 <TrendingUp className="h-4 w-4" />
                 Track Coding
