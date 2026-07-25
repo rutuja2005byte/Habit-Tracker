@@ -160,7 +160,7 @@ function DailyView({ days, today }: { days: DayProgress[]; today?: DayProgress }
         </div>
       </div>
 
-      <div className="dashboard-card min-h-64 py-4">
+      <div className="dashboard-card min-h-80 py-4">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="section-kicker">Daily</p>
@@ -171,14 +171,15 @@ function DailyView({ days, today }: { days: DayProgress[]; today?: DayProgress }
           style={{
             gridAutoColumns: "minmax(0, 1fr)",
             gridAutoFlow: "column",
-            gridTemplateRows: "repeat(7, 14px)",
+            gridTemplateRows: "repeat(7, minmax(0, 1fr))",
             gap: "6px",
+            height: "230px",
           }}
         >
           {days.map((day) => (
             <div
               key={day.date}
-              className={`aspect-square rounded-lg border ${goalCellClass(day.dailyGoalPercent)}`}
+              className={`rounded-lg border ${goalCellClass(day.dailyGoalPercent)}`}
               title={`${day.label}: ${day.dailyGoalPercent}% daily goals complete`}
             />
           ))}
@@ -275,7 +276,7 @@ function buildYearProgress(year: number, dailyHistory: DailyGoalHistory, codingH
 }
 
 function groupByWeek(days: DayProgress[], weeklyGoalHistory: DailyGoalHistory) {
-  const weeks = new Map<string, { label: string; days: number; goalTotal: number; weeklyPercent: number }>();
+  const weeks = new Map<string, { label: string; weeklyPercent: number }>();
 
   days.forEach((day) => {
     const dayDate = new Date(`${day.date}T00:00:00`);
@@ -284,14 +285,12 @@ function groupByWeek(days: DayProgress[], weeklyGoalHistory: DailyGoalHistory) {
     const weekKey = localDateKey(weekEnd);
     const current = weeks.get(weekKey) ?? {
       label: `W${weeks.size + 1}`,
-      days: 0,
-      goalTotal: 0,
       weeklyPercent: 0,
     };
 
-    current.days += 1;
-    current.goalTotal += dailyGoalProgress(weeklyGoalHistory[day.date]);
-    current.weeklyPercent = Math.round(current.goalTotal / current.days);
+    if (Object.prototype.hasOwnProperty.call(weeklyGoalHistory, day.date)) {
+      current.weeklyPercent = Math.round(dailyGoalProgress(weeklyGoalHistory[day.date]));
+    }
     weeks.set(weekKey, current);
   });
 
@@ -300,20 +299,18 @@ function groupByWeek(days: DayProgress[], weeklyGoalHistory: DailyGoalHistory) {
 
 function groupByMonth(days: DayProgress[], monthlyGoalHistory: DailyGoalHistory) {
   const colors = ["#4f8cff", "#34c759", "#ff9f0a", "#ef4444"];
-  const months = new Map<string, { label: string; days: number; goalTotal: number; monthlyPercent: number; color: string }>();
+  const months = new Map<string, { label: string; monthlyPercent: number; color: string }>();
 
   days.forEach((day) => {
     const current = months.get(day.month) ?? {
       label: day.month,
-      days: 0,
-      goalTotal: 0,
       monthlyPercent: 0,
       color: colors[months.size % colors.length],
     };
 
-    current.days += 1;
-    current.goalTotal += dailyGoalProgress(monthlyGoalHistory[day.date]);
-    current.monthlyPercent = Math.round(current.goalTotal / current.days);
+    if (Object.prototype.hasOwnProperty.call(monthlyGoalHistory, day.date)) {
+      current.monthlyPercent = Math.round(dailyGoalProgress(monthlyGoalHistory[day.date]));
+    }
     months.set(day.month, current);
   });
 
