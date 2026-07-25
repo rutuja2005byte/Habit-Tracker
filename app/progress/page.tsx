@@ -17,8 +17,6 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
-  Line,
-  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -86,16 +84,16 @@ export default function ProgressPage() {
   }, []);
 
   return (
-    <main className="min-h-screen px-4 py-6 text-[var(--foreground)] sm:px-6 lg:px-8">
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
-        <header className="flex flex-col gap-4 rounded-3xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-sm lg:flex-row lg:items-center lg:justify-between">
+    <main className="min-h-screen px-4 py-4 text-[var(--foreground)] sm:px-6 lg:px-8">
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-4">
+        <header className="flex flex-col gap-4 rounded-3xl border border-[var(--border)] bg-[var(--card)] p-4 shadow-sm lg:flex-row lg:items-center lg:justify-between">
           <div>
             <Link className="inline-flex items-center gap-2 text-sm font-medium text-[var(--muted)] transition hover:text-[var(--foreground)]" href="/">
               <ArrowLeft className="h-4 w-4" />
               Dashboard
             </Link>
-            <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">Year Progress</h1>
-            <p className="mt-2 text-sm text-[var(--muted)]">Jan 1 to Dec 30, {year}</p>
+            <h1 className="mt-2 text-3xl font-semibold tracking-tight">Year Progress</h1>
+            <p className="mt-1 text-sm text-[var(--muted)]">Jan 1 to Dec 30, {year}</p>
           </div>
           <div className="grid grid-cols-3 gap-2 rounded-3xl border border-[var(--border)] bg-[var(--subtle)] p-2">
             {viewTabs.map((tab) => (
@@ -111,7 +109,7 @@ export default function ProgressPage() {
           </div>
         </header>
 
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <Metric icon={CalendarDays} label="Tracked days" value={String(days.length)} detail="Jan 1 through Dec 30" />
           <Metric icon={Goal} label="Daily goals" value={String(completedGoalDays)} detail="100% daily-goal days" />
           <Metric icon={Code2} label="Coding days" value={String(completedCodingDays)} detail="3+ LeetCode and 5+ GitHub commits" />
@@ -128,12 +126,12 @@ export default function ProgressPage() {
 
 function Metric({ icon: Icon, label, value, detail }: { icon: LucideIcon; label: string; value: string; detail: string }) {
   return (
-    <div className="dashboard-card min-h-32">
+    <div className="dashboard-card min-h-24">
       <div className="rounded-2xl bg-[var(--subtle)] p-2 text-[var(--accent)]">
         <Icon className="h-5 w-5" />
       </div>
-      <p className="mt-4 text-sm text-[var(--muted)]">{label}</p>
-      <p className="mt-1 text-3xl font-semibold tracking-tight">{value}</p>
+      <p className="mt-3 text-sm text-[var(--muted)]">{label}</p>
+      <p className="mt-1 text-2xl font-semibold tracking-tight">{value}</p>
       <p className="mt-1 text-xs text-[var(--muted)]">{detail}</p>
     </div>
   );
@@ -141,18 +139,18 @@ function Metric({ icon: Icon, label, value, detail }: { icon: LucideIcon; label:
 
 function DailyView({ days, today }: { days: DayProgress[]; today?: DayProgress }) {
   return (
-    <section className="grid gap-6">
-      <div className="dashboard-card">
+    <section className="grid gap-4">
+      <div className="dashboard-card py-4">
         <p className="section-kicker">Today</p>
         <h2 className="section-title mt-1">{today?.label ?? "No day selected"}</h2>
-        <div className="mt-5 grid gap-3 md:grid-cols-3">
+        <div className="mt-3 grid gap-3 md:grid-cols-3">
           <StatusRow label="Daily goals" done={Boolean(today?.dailyGoalDone)} detail={`${today?.dailyGoalPercent ?? 0}% complete`} />
           <StatusRow label="LeetCode" done={(today?.leetcodeAccepted ?? 0) >= 3} detail={`${today?.leetcodeAccepted ?? 0} accepted today`} />
           <StatusRow label="GitHub" done={(today?.githubCommits ?? 0) >= 5} detail={`${today?.githubCommits ?? 0} commits today`} />
         </div>
       </div>
 
-      <div className="dashboard-card">
+      <div className="dashboard-card py-4">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="section-kicker">Daily</p>
@@ -160,7 +158,15 @@ function DailyView({ days, today }: { days: DayProgress[]; today?: DayProgress }
           </div>
           <p className="text-sm text-[var(--muted)]">Darker green means more daily goals are complete.</p>
         </div>
-        <div className="mt-5 grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(22px, 1fr))" }}>
+        <div
+          className="mt-4 grid overflow-hidden"
+          style={{
+            gridAutoColumns: "20px",
+            gridAutoFlow: "column",
+            gridTemplateRows: "repeat(7, 20px)",
+            gap: "8px",
+          }}
+        >
           {days.map((day) => (
             <div
               key={day.date}
@@ -179,19 +185,17 @@ function WeeklyView({ data }: { data: ReturnType<typeof groupByWeek> }) {
     <section className="dashboard-card">
       <div>
         <p className="section-kicker">Weekly</p>
-        <h2 className="section-title">Progress by week</h2>
+        <h2 className="section-title">Sunday weekly percentage</h2>
       </div>
       <div className="mt-5 h-96">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data}>
+          <BarChart data={data}>
             <CartesianGrid stroke="var(--track)" vertical={false} />
             <XAxis dataKey="label" tick={{ fill: "var(--muted)", fontSize: 11 }} interval={3} />
-            <YAxis allowDecimals={false} tick={{ fill: "var(--muted)", fontSize: 12 }} />
+            <YAxis domain={[0, 100]} tick={{ fill: "var(--muted)", fontSize: 12 }} />
             <Tooltip contentStyle={{ borderRadius: 14, border: "1px solid var(--border)", background: "var(--card)", color: "var(--foreground)" }} />
-            <Line type="monotone" dataKey="goalDays" name="Daily goal days" stroke="#4f8cff" strokeWidth={3} dot={false} />
-            <Line type="monotone" dataKey="codingDays" name="Coding days" stroke="#34c759" strokeWidth={3} dot={false} />
-            <Line type="monotone" dataKey="fullDays" name="Full progress days" stroke="#ff9f0a" strokeWidth={3} dot={false} />
-          </LineChart>
+            <Bar dataKey="weeklyPercent" name="Weekly target %" radius={[8, 8, 4, 4]} fill="#34c759" />
+          </BarChart>
         </ResponsiveContainer>
       </div>
     </section>
@@ -203,7 +207,7 @@ function MonthlyView({ data }: { data: ReturnType<typeof groupByMonth> }) {
     <section className="dashboard-card">
       <div>
         <p className="section-kicker">Monthly</p>
-        <h2 className="section-title">Progress by month</h2>
+        <h2 className="section-title">Month-end percentage</h2>
       </div>
       <div className="mt-5 h-96">
         <ResponsiveContainer width="100%" height="100%">
@@ -212,10 +216,9 @@ function MonthlyView({ data }: { data: ReturnType<typeof groupByMonth> }) {
             <XAxis dataKey="label" tick={{ fill: "var(--muted)", fontSize: 12 }} />
             <YAxis domain={[0, 100]} tick={{ fill: "var(--muted)", fontSize: 12 }} />
             <Tooltip contentStyle={{ borderRadius: 14, border: "1px solid var(--border)", background: "var(--card)", color: "var(--foreground)" }} />
-            <Bar dataKey="goalTargetPercent" name="Daily goals target %" radius={[8, 8, 4, 4]}>
+            <Bar dataKey="monthlyPercent" name="Monthly target %" radius={[8, 8, 4, 4]}>
               {data.map((item) => <Cell key={`${item.label}-goals`} fill={item.color} />)}
             </Bar>
-            <Bar dataKey="codingTargetPercent" name="Coding target %" radius={[8, 8, 4, 4]} fill="#34c759" />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -266,50 +269,63 @@ function buildYearProgress(year: number, dailyHistory: DailyGoalHistory, codingH
 }
 
 function groupByWeek(days: DayProgress[]) {
-  const weeks: { label: string; goalDays: number; codingDays: number; fullDays: number }[] = [];
-
-  days.forEach((day, index) => {
-    const weekIndex = Math.floor(index / 7);
-    const current = weeks[weekIndex] ?? {
-      label: `W${weekIndex + 1}`,
-      goalDays: 0,
-      codingDays: 0,
-      fullDays: 0,
-    };
-
-    current.goalDays += Number(day.dailyGoalDone);
-    current.codingDays += Number(day.codingDone);
-    current.fullDays += Number(day.score === 2);
-    weeks[weekIndex] = current;
-  });
-
-  return weeks;
-}
-
-function groupByMonth(days: DayProgress[]) {
-  const colors = ["#4f8cff", "#34c759", "#ff9f0a", "#ef4444"];
-  const months = new Map<string, { label: string; days: number; goalTotal: number; goalDays: number; codingDays: number; fullDays: number; goalTargetPercent: number; codingTargetPercent: number; color: string }>();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const weeks = new Map<string, { label: string; days: number; goalTotal: number; codingDays: number; weeklyPercent: number; weekEnd: Date }>();
 
   days.forEach((day) => {
-    const current = months.get(day.month) ?? {
-      label: day.month,
+    const dayDate = new Date(`${day.date}T00:00:00`);
+    const weekEnd = new Date(dayDate);
+    weekEnd.setDate(weekEnd.getDate() + ((7 - weekEnd.getDay()) % 7));
+    const weekKey = localDateKey(weekEnd);
+    const current = weeks.get(weekKey) ?? {
+      label: `W${weeks.size + 1}`,
       days: 0,
       goalTotal: 0,
-      goalDays: 0,
       codingDays: 0,
-      fullDays: 0,
-      goalTargetPercent: 0,
-      codingTargetPercent: 0,
-      color: colors[months.size % colors.length],
+      weeklyPercent: 0,
+      weekEnd,
     };
 
     current.days += 1;
     current.goalTotal += day.dailyGoalPercent;
-    current.goalDays += Number(day.dailyGoalDone);
     current.codingDays += Number(day.codingDone);
-    current.fullDays += Number(day.score === 2);
-    current.goalTargetPercent = Math.round(current.goalTotal / current.days);
-    current.codingTargetPercent = Math.round((current.codingDays / current.days) * 100);
+    current.weeklyPercent = current.weekEnd <= today
+      ? Math.round(((current.goalTotal / current.days) + ((current.codingDays / current.days) * 100)) / 2)
+      : 0;
+    weeks.set(weekKey, current);
+  });
+
+  return Array.from(weeks.values());
+}
+
+function groupByMonth(days: DayProgress[]) {
+  const colors = ["#4f8cff", "#34c759", "#ff9f0a", "#ef4444"];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const months = new Map<string, { label: string; days: number; goalTotal: number; codingDays: number; monthlyPercent: number; color: string; lastDate: Date }>();
+
+  days.forEach((day) => {
+    const dayDate = new Date(`${day.date}T00:00:00`);
+    const realLastDate = new Date(dayDate.getFullYear(), dayDate.getMonth() + 1, 0);
+    const yearLastDate = new Date(dayDate.getFullYear(), 11, 30);
+    const lastDate = realLastDate > yearLastDate ? yearLastDate : realLastDate;
+    const current = months.get(day.month) ?? {
+      label: day.month,
+      days: 0,
+      goalTotal: 0,
+      codingDays: 0,
+      monthlyPercent: 0,
+      color: colors[months.size % colors.length],
+      lastDate,
+    };
+
+    current.days += 1;
+    current.goalTotal += day.dailyGoalPercent;
+    current.codingDays += Number(day.codingDone);
+    current.monthlyPercent = current.lastDate <= today
+      ? Math.round(((current.goalTotal / current.days) + ((current.codingDays / current.days) * 100)) / 2)
+      : 0;
     months.set(day.month, current);
   });
 
