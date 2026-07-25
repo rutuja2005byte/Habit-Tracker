@@ -6,6 +6,8 @@ import {
   Check,
   CheckCircle2,
   Circle,
+  ArrowDown,
+  ArrowUp,
   Flame,
   Pencil,
   Plus,
@@ -224,6 +226,21 @@ export default function Home() {
     });
   }
 
+  function moveGoal(timeframe: Timeframe, id: string, direction: "up" | "down") {
+    const currentGoals = goalsByTimeframe[timeframe];
+    const currentIndex = currentGoals.findIndex((item) => item.id === id);
+    const nextIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+
+    if (currentIndex < 0 || nextIndex < 0 || nextIndex >= currentGoals.length) return;
+
+    const nextGoals = [...currentGoals];
+    [nextGoals[currentIndex], nextGoals[nextIndex]] = [nextGoals[nextIndex], nextGoals[currentIndex]];
+    saveGoals({
+      ...goalsByTimeframe,
+      [timeframe]: nextGoals,
+    });
+  }
+
   return (
     <main>
       <div className="min-h-screen text-[var(--foreground)] transition-colors">
@@ -280,6 +297,7 @@ export default function Home() {
               onEdit={(goalItem) => setModal({ mode: "edit", timeframe: active, goal: goalItem })}
               onDelete={(id) => deleteGoal(active, id)}
               onToggle={(id) => toggleGoal(active, id)}
+              onMove={(id, direction) => moveGoal(active, id, direction)}
             />
             <ProgressPanel completed={activeStats.completed} total={activeStats.total} percent={activeStats.percent} />
           </section>
@@ -375,6 +393,7 @@ function GoalPanel({
   onEdit,
   onDelete,
   onToggle,
+  onMove,
 }: {
   timeframe: Timeframe;
   goals: Goal[];
@@ -382,6 +401,7 @@ function GoalPanel({
   onEdit: (goal: Goal) => void;
   onDelete: (id: string) => void;
   onToggle: (id: string) => void;
+  onMove: (id: string, direction: "up" | "down") => void;
 }) {
   const current = stats(goals);
 
@@ -407,7 +427,7 @@ function GoalPanel({
               <p className="mt-3 font-medium">{timeframeCopy[timeframe].empty}</p>
             </div>
           ) : (
-            goals.map((item) => (
+            goals.map((item, index) => (
               <motion.div
                 key={item.id}
                 layout
@@ -428,6 +448,12 @@ function GoalPanel({
                   <p className="mt-2 text-xs text-[var(--muted)]">Created {item.createdAt}{item.targetDate ? ` · Target ${item.targetDate}` : ""}</p>
                 </div>
                 <div className="flex items-center gap-1">
+                  <button className="icon-button small" type="button" aria-label={`Move ${item.name} up`} onClick={() => onMove(item.id, "up")} disabled={index === 0}>
+                    <ArrowUp className="h-4 w-4" />
+                  </button>
+                  <button className="icon-button small" type="button" aria-label={`Move ${item.name} down`} onClick={() => onMove(item.id, "down")} disabled={index === goals.length - 1}>
+                    <ArrowDown className="h-4 w-4" />
+                  </button>
                   <button className="icon-button small" type="button" aria-label={`Edit ${item.name}`} onClick={() => onEdit(item)}>
                     <Pencil className="h-4 w-4" />
                   </button>

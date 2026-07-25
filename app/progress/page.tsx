@@ -161,10 +161,10 @@ function DailyView({ days, today }: { days: DayProgress[]; today?: DayProgress }
         <div
           className="mt-4 grid overflow-hidden"
           style={{
-            gridAutoColumns: "20px",
+            gridAutoColumns: "14px",
             gridAutoFlow: "column",
-            gridTemplateRows: "repeat(7, 20px)",
-            gap: "8px",
+            gridTemplateRows: "repeat(7, 14px)",
+            gap: "5px",
           }}
         >
           {days.map((day) => (
