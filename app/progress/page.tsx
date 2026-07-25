@@ -141,7 +141,17 @@ function Metric({ icon: Icon, label, value, detail }: { icon: LucideIcon; label:
 
 function DailyView({ days, today }: { days: DayProgress[]; today?: DayProgress }) {
   return (
-    <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+    <section className="grid gap-6">
+      <div className="dashboard-card">
+        <p className="section-kicker">Today</p>
+        <h2 className="section-title mt-1">{today?.label ?? "No day selected"}</h2>
+        <div className="mt-5 grid gap-3 md:grid-cols-3">
+          <StatusRow label="Daily goals" done={Boolean(today?.dailyGoalDone)} detail={`${today?.dailyGoalPercent ?? 0}% complete`} />
+          <StatusRow label="LeetCode" done={(today?.leetcodeAccepted ?? 0) >= 3} detail={`${today?.leetcodeAccepted ?? 0} accepted today`} />
+          <StatusRow label="GitHub" done={(today?.githubCommits ?? 0) >= 5} detail={`${today?.githubCommits ?? 0} commits today`} />
+        </div>
+      </div>
+
       <div className="dashboard-card">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
@@ -154,35 +164,10 @@ function DailyView({ days, today }: { days: DayProgress[]; today?: DayProgress }
           {days.map((day) => (
             <div
               key={day.date}
-              className={`aspect-square rounded-lg border border-[var(--border)] ${goalCellClass(day.dailyGoalPercent)}`}
+              className={`aspect-square rounded-lg border ${goalCellClass(day.dailyGoalPercent)}`}
               title={`${day.label}: ${day.dailyGoalPercent}% daily goals complete`}
             />
           ))}
-        </div>
-      </div>
-
-      <div className="dashboard-card">
-        <p className="section-kicker">GitHub commits</p>
-        <h2 className="section-title mt-1">Commit map</h2>
-        <p className="mt-2 text-sm text-[var(--muted)]">Green intensity follows daily GitHub commit count.</p>
-        <div className="mt-5 grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(18px, 1fr))" }}>
-          {days.map((day) => (
-            <div
-              key={`${day.date}-commits`}
-              className={`aspect-square rounded-md border border-[var(--border)] ${commitCellClass(day.githubCommits)}`}
-              title={`${day.label}: ${day.githubCommits} GitHub commits`}
-            />
-          ))}
-        </div>
-      </div>
-
-      <div className="dashboard-card xl:col-span-2">
-        <p className="section-kicker">Today</p>
-        <h2 className="section-title mt-1">{today?.label ?? "No day selected"}</h2>
-        <div className="mt-5 grid gap-3">
-          <StatusRow label="Daily goals" done={Boolean(today?.dailyGoalDone)} detail={`${today?.dailyGoalPercent ?? 0}% complete`} />
-          <StatusRow label="LeetCode" done={(today?.leetcodeAccepted ?? 0) >= 3} detail={`${today?.leetcodeAccepted ?? 0} accepted today`} />
-          <StatusRow label="GitHub" done={(today?.githubCommits ?? 0) >= 5} detail={`${today?.githubCommits ?? 0} commits today`} />
         </div>
       </div>
     </section>
@@ -332,16 +317,9 @@ function groupByMonth(days: DayProgress[]) {
 }
 
 function goalCellClass(percent: number) {
-  if (percent >= 100) return "bg-[var(--success)]";
-  if (percent >= 75) return "bg-emerald-300";
-  if (percent >= 50) return "bg-emerald-200";
-  if (percent > 0) return "bg-emerald-100";
-  return "bg-[var(--subtle)]";
-}
-
-function commitCellClass(commits: number) {
-  if (commits >= 5) return "bg-[var(--success)]";
-  if (commits >= 3) return "bg-emerald-300";
-  if (commits >= 1) return "bg-emerald-200";
-  return "bg-[var(--subtle)]";
+  if (percent >= 100) return "border-green-500 bg-[var(--success)] shadow-sm shadow-green-200";
+  if (percent >= 75) return "border-emerald-400 bg-emerald-300";
+  if (percent >= 50) return "border-emerald-300 bg-emerald-200";
+  if (percent > 0) return "border-emerald-200 bg-emerald-100";
+  return "border-slate-200 bg-slate-100/80";
 }
