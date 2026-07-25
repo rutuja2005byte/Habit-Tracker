@@ -88,9 +88,9 @@ export default function ProgressPage() {
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
         <header className="flex flex-col gap-4 rounded-3xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-sm lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <Link className="inline-flex items-center gap-2 text-sm font-medium text-[var(--muted)] transition hover:text-[var(--foreground)]" href="/tracking">
+            <Link className="inline-flex items-center gap-2 text-sm font-medium text-[var(--muted)] transition hover:text-[var(--foreground)]" href="/">
               <ArrowLeft className="h-4 w-4" />
-              Coding tracker
+              Dashboard
             </Link>
             <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">Year Progress</h1>
             <p className="mt-2 text-sm text-[var(--muted)]">Jan 1 to Dec 30, {year}</p>
